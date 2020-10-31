@@ -1,5 +1,7 @@
-.*
 out
+Makefile
+results
+.*
 *.exe
 *_m.cc 
 *_m.h 
