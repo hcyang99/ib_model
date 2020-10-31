@@ -1,0 +1,8 @@
+.*
+out
+*.exe
+*_m.cc 
+*_m.h 
+*_sm.cc 
+*_sm.h
+!.gitignore
