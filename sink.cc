@@ -155,8 +155,11 @@ void IBSink::consumeDataMsg(IBDataMsg *p_msg)
   IBSentMsg *p_sentMsg = new IBSentMsg("hca_sent", IB_SENT_MSG);
   p_sentMsg->setVL(vl);
   p_sentMsg->setWasLast(p_msg->getPacketLength() == p_msg->getFlitSn() + 1);
+  if (p_sentMsg->getWasLast())
+  {
+    send(new IBDoneMsg(nullptr, IB_DONE_MSG), "out");
+  }
   send(p_sentMsg, "sent");
-  delete p_msg;
 }
 
 void IBSink::handleData(IBDataMsg *p_msg)
@@ -165,6 +168,9 @@ void IBSink::handleData(IBDataMsg *p_msg)
 
   // make sure was correctly received (no routing bug)
   if (p_msg->getDstLid() != (int)lid) {
+    cModule* module = p_msg->getSenderModule();
+    cModule* hca = module->getParentModule();
+    cModule* parent = this->getParentModule();
 	  error("-E- Received packet to %d while self lid is %d",
 			  p_msg->getDstLid() , lid);
   }
@@ -275,7 +281,7 @@ void IBSink::handleData(IBDataMsg *p_msg)
 		  error("-E- Received last flit of packet from %d with no corresponding message record", p_msg->getSrcLid());
 	  }
 	  (*mI).second.numPktsReceived++;
-	  EV << "-I- " << getFullPath() << " received last flit of packet: " << (*mI).second.numPktsReceived << " from src: "
+	  EV << "-I- " << getFullPath() << " flit of packet: " << (*mI).second.numPktsReceived << " from src: "
 	  <<  p_msg->getSrcLid() << " app:" << p_msg->getAppIdx() << " msg: " << p_msg->getMsgIdx() << omnetpp::endl;
 
 	  // track the latency of the first num pkts of message

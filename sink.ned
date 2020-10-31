@@ -39,6 +39,7 @@ simple IBSink
  gates:
   input in;
   output sent;
+  output out;
   output pushFECN;
   output pushBECN;
 }

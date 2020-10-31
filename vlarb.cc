@@ -261,7 +261,7 @@ int IBVLArb::isValidArbitration(unsigned int portNum, unsigned int vl,
 {
   omnetpp::cGate *p_gate = gate("out")->getPathEndGate();
   IBOutBuf *p_oBuf = dynamic_cast<IBOutBuf *>(p_gate->getOwnerModule());
-  if ((p_oBuf == NULL) || strcmp(p_oBuf->getName(), "obuf")) {
+  if ((p_oBuf == NULL) /*|| strcmp(p_oBuf->getName(), "obuf")*/) {
     error("-E- %s fail to get OBUF from out port", getFullPath().c_str());
   }
   

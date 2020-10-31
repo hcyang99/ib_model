@@ -28,30 +28,47 @@ module HCA
         int srcLid;
         @display("bgb=340,225;i=device/server2");
     gates:
-        inout port;
+        inout in;
+        inout out;
 
     submodules:
-        app: IBApp {
+        app: IBRingAllreduceApp {
             parameters:
                 @display("p=313,170");
         }
-        gen: IBGenerator {
+        gen_in: IBGenerator {
             parameters:
                 srcLid = srcLid;
                 @display("i=block/source;p=246,170");
             gates:
                 in[1];
         }
-        sink: IBSink {
+        gen_out: IBGenerator {
+            parameters:
+                srcLid = srcLid;
+                @display("i=block/source;p=246,170");
+            gates:
+                in[1];
+        }
+        sink_in: IBSink {
             parameters:
                 @display("i=block/sink;p=248,74");
         }
-        obuf: IBOutBuf {
+        sink_out: IBSink {
+            parameters:
+                @display("i=block/sink;p=248,74");
+        }
+        obuf_in: IBOutBuf {
             parameters:
                 isHcaOBuf = 1;
                 @display("i=block/queue;p=69,169");
         }
-        ibuf: IBInBuf {
+        obuf_out: IBOutBuf {
+            parameters:
+                isHcaOBuf = 1;
+                @display("i=block/queue;p=69,169");
+        }
+        ibuf_in: IBInBuf {
             parameters:
                 isHcaIBuf = 1;
                 numPorts = 1;
@@ -60,7 +77,16 @@ module HCA
                 out[1];
                 sent[1];
         }
-        vlarb: IBVLArb {
+        ibuf_out: IBInBuf {
+            parameters:
+                isHcaIBuf = 1;
+                numPorts = 1;
+                @display("i=block/subqueue;p=69,74");
+            gates:
+                out[1];
+                sent[1];
+        }
+        vlarb_in: IBVLArb {
             parameters:
                 isHcaArbiter = 1;
                 numPorts = 1;
@@ -70,22 +96,50 @@ module HCA
                 sent[1];
 
         }
+        vlarb_out: IBVLArb {
+            parameters:
+                isHcaArbiter = 1;
+                numPorts = 1;
+                @display("i=block/dispatch;p=158,170");
+            gates:
+                in[1];
+                sent[1];
+
+        }
+        dummy: Dummy {}
     connections:
-        app.out <--> gen.in[0];
-        gen.out --> vlarb.in[0];
-        vlarb.sent[0] --> { @display("m=m,68,20,68,20"); } --> gen.sent;
-        vlarb.out --> { @display("m=m,16,56,24,60"); } --> obuf.in;
-        obuf.free --> { @display("m=m,20,28,4,24"); } --> vlarb.free;
+        app.out <--> gen_out.in[0];
+        sink_in.out --> app.in;
+        dummy.out <--> gen_in.in[0];
+        sink_out.out --> dummy.in;
 
-        ibuf.out[0] --> sink.in;
-        sink.sent --> ibuf.sent[0];
+        gen_out.out --> vlarb_out.in[0];
+        gen_in.out --> vlarb_in.in[0];
 
-        ibuf.rxCred --> { @display("m=m,28,12,36,12"); } --> obuf.rxCred;
-        ibuf.txCred --> vlarb.txCred;
+        vlarb_out.sent[0] --> { @display("m=m,68,20,68,20"); } --> gen_out.sent;
+        vlarb_out.out --> { @display("m=m,16,56,24,60"); } --> obuf_out.in;
+        obuf_out.free --> { @display("m=m,20,28,4,24"); } --> vlarb_out.free;
+        vlarb_in.sent[0] --> { @display("m=m,68,20,68,20"); } --> gen_in.sent;
+        vlarb_in.out --> { @display("m=m,16,56,24,60"); } --> obuf_in.in;
+        obuf_in.free --> { @display("m=m,20,28,4,24"); } --> vlarb_in.free;
 
-        port$i --> ibuf.in;
-        obuf.out --> port$o;
+        ibuf_out.out[0] --> sink_out.in;
+        sink_out.sent --> ibuf_out.sent[0];
+        ibuf_in.out[0] --> sink_in.in;
+        sink_in.sent --> ibuf_in.sent[0];
 
-        sink.pushFECN --> gen.recvFECN;
-        sink.pushBECN --> gen.recvBECN;
+        ibuf_out.rxCred --> { @display("m=m,28,12,36,12"); } --> obuf_out.rxCred;
+        ibuf_out.txCred --> vlarb_out.txCred;
+        ibuf_in.rxCred --> { @display("m=m,28,12,36,12"); } --> obuf_in.rxCred;
+        ibuf_in.txCred --> vlarb_in.txCred;
+
+        out$i --> ibuf_out.in;
+        obuf_out.out --> out$o;
+        in$i --> ibuf_in.in;
+        obuf_in.out --> in$o;
+
+        sink_out.pushFECN --> gen_out.recvFECN;
+        sink_out.pushBECN --> gen_out.recvBECN;
+        sink_in.pushFECN --> gen_in.recvFECN;
+        sink_in.pushBECN --> gen_in.recvBECN;
 }

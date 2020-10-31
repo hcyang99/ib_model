@@ -183,7 +183,7 @@ int IBGenerator::isRemoteHoQFree(int vl){
   // call its method for checking and setting HoQ
   omnetpp::cGate *p_gate = gate("out")->getPathEndGate();
   IBVLArb *p_vla = dynamic_cast<IBVLArb *>(p_gate->getOwnerModule());
-  if ((p_vla == NULL) || strcmp(p_vla->getName(), "vlarb")) {
+  if ((p_vla == NULL) /*|| strcmp(p_vla->getName(), "vlarb")*/) {
     error("cannot get VLA for generator out port");
   }
   
@@ -335,7 +335,9 @@ void IBGenerator::getNextAppMsg()
       // we are done with the app msg
       EV << "-I- " << getFullPath() << " completed appMsg:" 
          << p_msg->getName() << omnetpp::endl;
-      send(p_msg, "in$o", curApp);
+      
+      delete p_msg;
+      send(new IBSentMsg(nullptr, IB_SENT_MSG), "in$o", curApp);
       appMsgs[curApp] = NULL;
     } else {
       p_msg->setPktIdx(thisPktIdx);
@@ -536,6 +538,7 @@ void IBGenerator::handleSendTimer(omnetpp::cMessage *p_msg)
 1. generate a BECN message, initialize the srclid, dstlid,sl
 */
 void IBGenerator::handlePushFECN(IBPushFECNMsg *msg){
+  // error("First hit\n");
   IBDataMsg *p_BECN;
   int srcLid = msg->getDstLid();
   int dstLid = msg->getSrcLid();

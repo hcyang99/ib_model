@@ -40,17 +40,18 @@ Define_Module(IBApp);
 
 void IBApp::parseIntListParam(const char *parName, std::vector<int> &out)
 {
-  int cnt = 0;
+//  int cnt = 0;
   const char *str = par(parName);
   char *tmpBuf = new char[strlen(str)+1];
   strcpy(tmpBuf, str);
   char *entStr = strtok(tmpBuf, " ,");
   if (out.size()) out.clear();
   while (entStr) {
-    cnt++;
+//    cnt++;
     out.push_back(atoi(entStr));
     entStr = strtok(NULL, " ,");
   }
+  delete[] tmpBuf;
 }
 
 // main init of the module
