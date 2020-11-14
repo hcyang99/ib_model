@@ -45,7 +45,7 @@ module HCA
         }
         gen_out: IBGenerator {
             parameters:
-                srcLid = srcLid;
+                srcLid = srcLid - 1;
                 @display("i=block/source;p=246,170");
             gates:
                 in[1];

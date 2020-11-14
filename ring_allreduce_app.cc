@@ -38,8 +38,8 @@ cMessage* IBRingAllreduceApp::getMsg(unsigned& msgIdx)
     IBAppMsg* p_msg = new IBAppMsg(nullptr, IB_APP_MSG);
     p_msg->setAppIdx(rank_);
     p_msg->setMsgIdx(msgIdx);
-    p_msg->setDstLid(rank_ + 1 > num_workers_ ? 1 : rank_ + 1);
-    assert(p_msg->getDstLid() != rank_);
+    p_msg->setDstLid(rank_ + 1 > num_workers_ ? 2 : 2 * rank_ + 2);
+    // assert(p_msg->getDstLid() != rank_);
     p_msg->setSQ(0);
     p_msg->setLenBytes(msgLen_B_ / num_workers_);
     p_msg->setLenPkts(msgLen_B_ / num_workers_ / msgMtuLen_B_);
