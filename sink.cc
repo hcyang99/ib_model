@@ -167,13 +167,13 @@ void IBSink::handleData(IBDataMsg *p_msg)
   double delay_us;
 
   // make sure was correctly received (no routing bug)
-  if (p_msg->getDstLid() != (int)lid) {
-    cModule* module = p_msg->getSenderModule();
-    cModule* hca = module->getParentModule();
-    cModule* parent = this->getParentModule();
-	  error("-E- Received packet to %d while self lid is %d",
-			  p_msg->getDstLid() , lid);
-  }
+  // if (p_msg->getDstLid() != (int)lid) {
+  //   cModule* module = p_msg->getSenderModule();
+  //   cModule* hca = module->getParentModule();
+  //   cModule* parent = this->getParentModule();
+	//   error("-E- Received packet to %d while self lid is %d",
+	// 		  p_msg->getDstLid() , lid);
+  // }
 
   /* for congestion control
   1. if is BECN, generate PushBECN message to gen module

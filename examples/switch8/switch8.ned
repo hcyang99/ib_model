@@ -9,21 +9,21 @@ network switch8
                 @display("i=device/server2;p=80,109");
         }
 
-        sw[2]: Switch {
+        sw: Switch {
             parameters:
-                numSwitchPorts = 8;
+                numSwitchPorts = 16;
                 @display("p=182,58");
             gates:
-                port[8];
+                port[16];
         }
     
     connections:
         for k = 0..7 
         {
-            H[k].out$o --> IB4XQDRWire --> sw[0].port$i[k];
-            H[k].in$i <-- IB4XQDRWire <-- sw[0].port$o[k];
+            H[k].out$o --> IB4XQDRWire --> sw.port$i[2 * k + 1];
+            H[k].in$i <-- IB4XQDRWire <-- sw.port$o[2 * k + 1];
 
-            H[k].in$o --> IB4XQDRWire --> sw[1].port$i[k];
-            H[k].out$i <-- IB4XQDRWire <-- sw[1].port$o[k];
+            H[k].in$o --> IB4XQDRWire --> sw.port$i[2 * k];
+            H[k].out$i <-- IB4XQDRWire <-- sw.port$o[2 * k];
         }
 }
