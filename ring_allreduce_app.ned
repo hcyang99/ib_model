@@ -17,29 +17,15 @@
 // SOFTWARE.
 //
 ///////////////////////////////////////////////////////////////////////////
+
 package ib_model;
 
-//
-// Destroys the packets and collects statistics
-//
-simple IBSink
+simple IBRingAllreduceApp
 {
  parameters:
-  double flitSize @unit(B);       // flit size in bytes
-  double popDlyPerByte @unit(ns);   // the PCI Exp drain rate
-  int maxVL;                      // Maximum VL we send on
-  volatile double hiccupDuration @unit(us); // the time a hiccup may take 
-  volatile double hiccupDelay @unit(us);    // the time between hiccups
-  double startStatCol @unit(s);  // Time to start statistics collection from
-  int repFirstPackets; // number of first packets that if are accepted record message latency done 
-  int on_cc = default(0);            //IBA congestion control
-  int on_newcc = default(0);         //new congestion control
-  double timeStep_us @unit(us); // timestep for throughput calculation
-  int on_utilization = default(0);
+  int rank;
+  @display("i=block/telnet");
  gates:
+  inout out;
   input in;
-  output sent;
-  output out;
-  output pushFECN;
-  output pushBECN;
 }
