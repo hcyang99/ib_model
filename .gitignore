@@ -7,4 +7,5 @@ results
 *_m.h 
 *_sm.cc 
 *_sm.h
+ib_sim*
 !.gitignore

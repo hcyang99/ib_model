@@ -5,10 +5,14 @@ using namespace omnetpp;
 
 Define_Module(IBRingAllreduceApp);
 
+int IBRingAllreduceApp::finishCount_ = IBRingAllreduceApp::num_workers_;
+std::mutex IBRingAllreduceApp::finishCountMutex_;
+
 void IBRingAllreduceApp::initialize()
 {
     rank_ = par("rank");
     counter_ = 0;
+    recv_counter_ = 0;
     // use self message to start 
     scheduleAt(simTime() + SimTime(10, SIMTIME_NS), new cMessage);
 }
@@ -27,10 +31,20 @@ void IBRingAllreduceApp::handleMessage(cMessage* msg)
         send(msg_new, "out$o");
         EV << "-I- " << getFullPath() << " sent data: " << counter_ 
             << msg_new->getName() << omnetpp::endl;
+        
+        ++recv_counter_;
+        if (recv_counter_ >= num_workers_)
+        {
+            IBRingAllreduceApp::finishCountMutex_.lock();
+            --IBRingAllreduceApp::finishCount_;
+            if (IBRingAllreduceApp::finishCount_ == 0)
+            {
+                error("Finished.\n");
+            }
+            IBRingAllreduceApp::finishCountMutex_.unlock();
+        }
     }
     delete msg;
-    // if (counter_ >= num_workers_)
-    //     error("Finished.\n");
 }
 
 cMessage* IBRingAllreduceApp::getMsg(unsigned& msgIdx)
@@ -38,12 +52,13 @@ cMessage* IBRingAllreduceApp::getMsg(unsigned& msgIdx)
     IBAppMsg* p_msg = new IBAppMsg(nullptr, IB_APP_MSG);
     p_msg->setAppIdx(rank_);
     p_msg->setMsgIdx(msgIdx);
-    p_msg->setDstLid(rank_ + 1 > num_workers_ ? 2 : 2 * rank_ + 2);
+    p_msg->setDstLid(rank_ + 1 > num_workers_ ? 1 : rank_ + 1);
     // assert(p_msg->getDstLid() != rank_);
     p_msg->setSQ(0);
     p_msg->setLenBytes(msgLen_B_ / num_workers_);
     p_msg->setLenPkts(msgLen_B_ / num_workers_ / msgMtuLen_B_);
     p_msg->setMtuBytes(msgMtuLen_B_);
     ++msgIdx;
+    EV << "msgIdx: " << msgIdx << omnetpp::endl;
     return p_msg;
 }

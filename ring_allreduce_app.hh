@@ -1,14 +1,18 @@
 #include <omnetpp.h>
+#include <mutex>
 
 class IBRingAllreduceApp : public omnetpp::cSimpleModule
 {
     private:
-    static const unsigned num_workers_ = 8;
-    static const unsigned msgMtuLen_B_ = 2048;
-    static const unsigned msgLen_B_ = 80 * 1024;
+    static constexpr unsigned num_workers_ = 8;
+    static constexpr unsigned msgMtuLen_B_ = 2048;
+    static constexpr unsigned msgLen_B_ = 80 * 1024;
+    static std::mutex finishCountMutex_;
+    static int finishCount_;
     
     unsigned rank_;
     unsigned counter_;
+    unsigned recv_counter_;
     
     virtual ~IBRingAllreduceApp() {}
     omnetpp::cMessage* getMsg(unsigned& msgIdx);

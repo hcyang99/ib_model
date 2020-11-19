@@ -335,7 +335,8 @@ void IBGenerator::getNextAppMsg()
       // we are done with the app msg
       EV << "-I- " << getFullPath() << " completed appMsg:" 
          << p_msg->getName() << omnetpp::endl;
-      send(p_msg, "in$o", curApp);
+      delete p_msg;
+      send(new IBSentMsg(nullptr, IB_SENT_MSG), "in$o", curApp);
       appMsgs[curApp] = NULL;
     } else {
       p_msg->setPktIdx(thisPktIdx);
