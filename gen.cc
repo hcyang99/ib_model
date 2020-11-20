@@ -336,8 +336,8 @@ void IBGenerator::getNextAppMsg()
       EV << "-I- " << getFullPath() << " completed appMsg:" 
          << p_msg->getName() << omnetpp::endl;
       delete p_msg;
-      send(new IBSentMsg(nullptr, IB_SENT_MSG), "in$o", curApp);
       appMsgs[curApp] = NULL;
+      send(new IBSentMsg(nullptr, IB_SENT_MSG), "in$o", curApp);
     } else {
       p_msg->setPktIdx(thisPktIdx);
       initPacketParams(p_msg, thisPktIdx);

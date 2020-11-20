@@ -156,7 +156,11 @@ void IBSink::consumeDataMsg(IBDataMsg *p_msg)
   p_sentMsg->setVL(vl);
   p_sentMsg->setWasLast(p_msg->getPacketLength() == p_msg->getFlitSn() + 1);
   if (p_sentMsg->getWasLast())
+    EV << "-I- " << "finished a packet" << omnetpp::endl;
+
+  if (p_sentMsg->getWasLast() && !p_msg->getIsFECN() && !p_msg->getIsBECN() && ++packet_counter_ == p_msg->getMsgLen())
   {
+    packet_counter_ = 0;
     send(new IBDoneMsg(nullptr, IB_DONE_MSG), "out");
   }
   send(p_sentMsg, "sent");

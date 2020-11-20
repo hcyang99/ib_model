@@ -22,21 +22,54 @@ void IBRingAllreduceApp::initialize()
 
 void IBRingAllreduceApp::handleMessage(cMessage* msg)
 {
-    if (!msg->isSelfMessage())
+    // if (!msg->isSelfMessage())
+    // {
+    //     const char* g = msg->getArrivalGate()->getFullName();
+    //     EV << "-I- " << getFullPath() << " received from:" 
+    //         << g << omnetpp::endl;
+    // }
+    // init or sent a whole message
+    if (msg->isSelfMessage() || msg->getKind() == IB_SENT_MSG)
+    {
+        if (!msg->isSelfMessage())
+        {
+            const char* g = msg->getArrivalGate()->getFullName();
+            EV << "-I- " << getFullPath() << " received sent msg from:" 
+                << g << omnetpp::endl;
+        }
+        
+        if (next_ready_)
+        {
+            next_ready_ = false;
+            cMessage* msg_new = getMsg(counter_);
+            send(msg_new, "out$o");
+            EV << "-I- " << getFullPath() << " sent data: " << counter_ 
+                << msg_new->getName() << omnetpp::endl;
+        }
+        else 
+        {
+            next_ready_ = true;
+        }
+    }
+    // received a whole message
+    else if (msg->getKind() == IB_DONE_MSG)
     {
         const char* g = msg->getArrivalGate()->getFullName();
-        EV << "-I- " << getFullPath() << " received from:" 
+        EV << "-I- " << getFullPath() << " received done msg " << recv_counter_ << " from:" 
             << g << omnetpp::endl;
-    }
-    if (msg->isSelfMessage() || msg->getKind() == IB_SENT_MSG && counter_ < num_workers_)
-    {
-        cMessage* msg_new = getMsg(counter_);
-        send(msg_new, "out$o");
-        EV << "-I- " << getFullPath() << " sent data: " << counter_ 
-            << msg_new->getName() << omnetpp::endl;
-        
+        if (next_ready_)
+        {
+            next_ready_ = false;
+            cMessage* msg_new = getMsg(counter_);
+            send(msg_new, "out$o");
+            EV << "-I- " << getFullPath() << " sent data: " << counter_ 
+                << msg_new->getName() << omnetpp::endl;
+        }
+        else 
+            next_ready_ = true;
+
         ++recv_counter_;
-        if (recv_counter_ >= num_workers_)
+        if (recv_counter_ >= 2 * num_workers_ - 1)
         {
             IBRingAllreduceApp::finishCountMutex_.lock();
             --IBRingAllreduceApp::finishCount_;

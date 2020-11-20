@@ -86,6 +86,7 @@ class IBSink : public omnetpp::cSimpleModule
   double flitSize;   // size in bytes of single flit
   double startStatCol_sec; // time to start co
   unsigned int repFirstPackets; // if not zero declare a message as done after first repFirstPackets arrived
+  unsigned packet_counter_ = 0;
 
   // data structure
   int     duringHiccup;                  // set to 1 if during a hiccup
