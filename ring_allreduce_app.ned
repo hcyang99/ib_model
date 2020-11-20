@@ -24,6 +24,7 @@ simple IBRingAllreduceApp
 {
  parameters:
   int rank;
+  string nodeAllocFile;
   @display("i=block/telnet");
  gates:
   inout out;

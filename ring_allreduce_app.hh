@@ -1,5 +1,6 @@
 #include <omnetpp.h>
 #include <mutex>
+#include "NodeAlloc.hh"
 
 class IBRingAllreduceApp : public omnetpp::cSimpleModule
 {
@@ -10,6 +11,7 @@ class IBRingAllreduceApp : public omnetpp::cSimpleModule
     static std::mutex finishCountMutex_;
     static int finishCount_;
     
+    NodeAlloc nodeAllocVec_;
     unsigned rank_;
     unsigned counter_;
     unsigned recv_counter_;
