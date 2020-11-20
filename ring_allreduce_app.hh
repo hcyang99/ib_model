@@ -5,7 +5,7 @@
 class IBRingAllreduceApp : public omnetpp::cSimpleModule
 {
     private:
-    static constexpr unsigned msgLen_B_ = 80 * 1024;
+    static constexpr unsigned msgLen_B_ = 128 * 1024;
     static constexpr unsigned msgMtuLen_B_ = 2048;
     static std::mutex finishCountMutex_;
     static int finishCount_;

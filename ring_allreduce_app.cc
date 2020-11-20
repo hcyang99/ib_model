@@ -15,9 +15,10 @@ void IBRingAllreduceApp::initialize()
     counter_ = 0;
     recv_counter_ = 0;
     num_workers_ = nodeAllocVec_.size();
-    finishCount_ = num_workers_;
+    finishCount_ = 8;
     // use self message to start 
-    scheduleAt(simTime() + SimTime(10, SIMTIME_NS), new cMessage);
+    if (num_workers_ != 0)
+        scheduleAt(simTime() + SimTime(10, SIMTIME_NS), new cMessage);
 }
 
 void IBRingAllreduceApp::handleMessage(cMessage* msg)
@@ -88,7 +89,7 @@ cMessage* IBRingAllreduceApp::getMsg(unsigned& msgIdx)
     IBAppMsg* p_msg = new IBAppMsg(nullptr, IB_APP_MSG);
     p_msg->setAppIdx(rank_);
     p_msg->setMsgIdx(msgIdx);
-    p_msg->setDstLid(nodeAllocVec_[(rank_ + 1 > num_workers_ ? 1 : rank_ + 1) - 1]);
+    p_msg->setDstLid(nodeAllocVec_[rank_ + 1 > num_workers_ ? 0 : rank_]);
     // assert(p_msg->getDstLid() != rank_);
     p_msg->setSQ(0);
     p_msg->setLenBytes(msgLen_B_ / num_workers_);
