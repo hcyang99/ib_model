@@ -27,4 +27,9 @@ class NodeAlloc
     {
         return allocVec_[x];
     }
+
+    unsigned size() const
+    {
+        return allocVec_.size();
+    }
 };

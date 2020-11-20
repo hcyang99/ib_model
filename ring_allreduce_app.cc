@@ -5,7 +5,7 @@ using namespace omnetpp;
 
 Define_Module(IBRingAllreduceApp);
 
-int IBRingAllreduceApp::finishCount_ = IBRingAllreduceApp::num_workers_;
+int IBRingAllreduceApp::finishCount_;
 std::mutex IBRingAllreduceApp::finishCountMutex_;
 
 void IBRingAllreduceApp::initialize()
@@ -14,6 +14,8 @@ void IBRingAllreduceApp::initialize()
     rank_ = par("rank");
     counter_ = 0;
     recv_counter_ = 0;
+    num_workers_ = nodeAllocVec_.size();
+    finishCount_ = num_workers_;
     // use self message to start 
     scheduleAt(simTime() + SimTime(10, SIMTIME_NS), new cMessage);
 }
