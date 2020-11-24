@@ -1,5 +1,6 @@
 #include <omnetpp.h>
 #include <mutex>
+#include <vector>
 #include "NodeAlloc.hh"
 
 class IBRingAllreduceApp : public omnetpp::cSimpleModule
@@ -15,11 +16,13 @@ class IBRingAllreduceApp : public omnetpp::cSimpleModule
     unsigned counter_;
     unsigned recv_counter_;
     unsigned num_workers_;
-    bool next_ready_ = true;
+    bool is_sending_ = false;
+    std::vector<int> data_;
     
     
     virtual ~IBRingAllreduceApp() {}
     omnetpp::cMessage* getMsg(unsigned& msgIdx);
+    void trySendNext();
 
     protected:
     virtual void initialize() override;

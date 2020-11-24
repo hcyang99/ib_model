@@ -153,6 +153,7 @@ message IBFreeMsg extends cMessage
 // arbitration succeeded message
 message IBDoneMsg extends cMessage
 {
+  int appIdx;
   short VL;
 }
 
