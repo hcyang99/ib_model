@@ -659,7 +659,7 @@ void IBSink::handleSinkTimer(IBSinkTimerMsg *p_msg)
     throughput.record(oBW);
     omnetpp::simtime_t delay = timeStep_us*1e-6;
     Recv_throughput = 0;
-    scheduleAt(omnetpp::simTime()+delay, sinktimerMsg[srcLid]);
+    scheduleAt(omnetpp::simTime()+delay, sinktimerMsg[0]);
   
 }
 

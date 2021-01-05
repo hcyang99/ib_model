@@ -108,7 +108,8 @@ void IBGenerator::initialize() {
   
   
   increaseStep_us = par("CCT_Timer");
-  Last_BECN.resize(100, 0);
+  constexpr int LID_MAX = 1024;
+  Last_BECN.resize(LID_MAX, 0);
   send_interval_ns = 1638.4 * 1.25 / 4;
   send_interval_ns_last = send_interval_ns;
   //send_interval_ns = genDlyPerByte_ns*flitSize_B;
