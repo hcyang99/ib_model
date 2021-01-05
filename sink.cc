@@ -58,16 +58,18 @@ void IBSink::initialize()
   p_drainMsg = new omnetpp::cMessage("pop", IB_POP_MSG);
   //p_pushFECNmsg = new IBPushFECNMsg("pushFECNmsg", IB_PUSHFECN_MSG);
 
+  constexpr int MAX_LID = 1024;
+
   AccBytesRcv = 0;
   BECNRecv = 0;
-  FECNRecv.resize(150,0);
+  FECNRecv.resize(MAX_LID,0);
   //VictimRecv.resize(100,0);
   Recv.resize(100,0);
   RecvRate = 0.0;
   PktRecvTime = 0;
   LastRecvTime = 0;
-  FECNRecvTime.resize(150,0);
-  FirstRecvTime.resize(150,0);
+  FECNRecvTime.resize(MAX_LID,0);
+  FirstRecvTime.resize(MAX_LID,0);
   temp.resize(100,1);
 
   
