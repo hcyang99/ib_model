@@ -158,15 +158,17 @@ void IBSink::consumeDataMsg(IBDataMsg *p_msg)
   p_sentMsg->setVL(vl);
   p_sentMsg->setWasLast(p_msg->getPacketLength() == p_msg->getFlitSn() + 1);
   if (!p_msg->getIsBECN())
+  {
     EV << "-I- " << "finished packet" << p_msg->getMsgIdx() << ":" << packet_counter_ << omnetpp::endl;
-
+  }
+    
   if (p_sentMsg->getWasLast() && !p_msg->getIsBECN() && ++packet_counter_ == p_msg->getMsgLen())
   {
     packet_counter_ = 0;
     IBDoneMsg* d_msg = new IBDoneMsg(nullptr, IB_DONE_MSG);
     d_msg->setAppIdx(p_msg->getAppIdx());
-    // if (p_msg->getDstLid() == 306)
-    //   std::cout << "H[306] received msg " << p_msg->getMsgIdx() << std::endl;
+    // if (p_msg->getDstLid() == 307)
+    //   error("H[306] received msg "); 
     send(d_msg, "out");
   }
   send(p_sentMsg, "sent");

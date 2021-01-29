@@ -51,14 +51,14 @@ void IBRingAllreduceApp::handleMessage(cMessage* msg)
         const char* g = msg->getArrivalGate()->getFullName();
         EV << "-I- " << getFullPath() << " received done msg " << recv_counter_ << " from:" 
             << g << omnetpp::endl;
-        {
-            static int _cnt = 0;
-            if (rank_ == 307)
-            {
-                ++_cnt;
-                std::cout << "-I- " << getFullPath() << " received data: " << _cnt << std::endl;
-            }
-        }
+        // {
+        //     static int _cnt = 0;
+        //     if (rank_ == 307)
+        //     {
+        //         ++_cnt;
+        //         std::cout << "-I- " << getFullPath() << " received data: " << _cnt << std::endl;
+        //     }
+        // }
                 
     
 
@@ -129,6 +129,6 @@ void IBRingAllreduceApp::trySendNext()
     send(msg_new, "out$o");
     // if (rank_ == 307)
     //     std::cout << "-I- " << getFullPath() << " sent data: " << counter_ 
-    //         << msg_new->getName() << std::endl;
+    //         << " at " << getSimulation()->getEventNumber() << std::endl;
     return;
 }
