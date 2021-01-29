@@ -23,7 +23,6 @@ void IBRingAllreduceApp::initialize()
         data_[(2 * num_workers_ + rank_ - 2) % num_workers_] = 1;
         scheduleAt(simTime() + SimTime(10, SIMTIME_NS), new cMessage);
     }
-        
 }
 
 void IBRingAllreduceApp::handleMessage(cMessage* msg)
@@ -52,6 +51,16 @@ void IBRingAllreduceApp::handleMessage(cMessage* msg)
         const char* g = msg->getArrivalGate()->getFullName();
         EV << "-I- " << getFullPath() << " received done msg " << recv_counter_ << " from:" 
             << g << omnetpp::endl;
+        {
+            static int _cnt = 0;
+            if (rank_ == 307)
+            {
+                ++_cnt;
+                std::cout << "-I- " << getFullPath() << " received data: " << _cnt << std::endl;
+            }
+        }
+                
+    
 
         ++recv_counter_;
         IBDoneMsg* d_msg = reinterpret_cast<IBDoneMsg*>(msg);
@@ -60,10 +69,13 @@ void IBRingAllreduceApp::handleMessage(cMessage* msg)
 
         if (recv_counter_ >= 2 * num_workers_ - 1)
         {
+            std::cout << rank_ << " finished at " << getSimulation()->getSimTime().str() << "\n";
             IBRingAllreduceApp::finishCountMutex_.lock();
             --IBRingAllreduceApp::finishCount_;
             if (IBRingAllreduceApp::finishCount_ == 0)
             {
+                std::cerr << "Finished at " << getSimulation()->getSimTime().str() << "\n";
+                std::exit(0);
                 error("Finished.\n");
             }
             IBRingAllreduceApp::finishCountMutex_.unlock();
@@ -115,7 +127,8 @@ void IBRingAllreduceApp::trySendNext()
     is_sending_ = true;
     cMessage* msg_new = getMsg(counter_);
     send(msg_new, "out$o");
-    EV << "-I- " << getFullPath() << " sent data: " << counter_ 
-        << msg_new->getName() << omnetpp::endl;
+    // if (rank_ == 307)
+    //     std::cout << "-I- " << getFullPath() << " sent data: " << counter_ 
+    //         << msg_new->getName() << std::endl;
     return;
 }

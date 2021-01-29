@@ -64,7 +64,7 @@ void IBSink::initialize()
   BECNRecv = 0;
   FECNRecv.resize(MAX_LID,0);
   //VictimRecv.resize(100,0);
-  Recv.resize(100,0);
+  Recv.resize(MAX_LID,0);
   RecvRate = 0.0;
   PktRecvTime = 0;
   LastRecvTime = 0;
@@ -165,8 +165,8 @@ void IBSink::consumeDataMsg(IBDataMsg *p_msg)
     packet_counter_ = 0;
     IBDoneMsg* d_msg = new IBDoneMsg(nullptr, IB_DONE_MSG);
     d_msg->setAppIdx(p_msg->getAppIdx());
-    // if (p_msg->getDstLid() == 1 && p_msg->getMsgIdx() == 2)
-    //   error("Break\n");
+    // if (p_msg->getDstLid() == 306)
+    //   std::cout << "H[306] received msg " << p_msg->getMsgIdx() << std::endl;
     send(d_msg, "out");
   }
   send(p_sentMsg, "sent");
