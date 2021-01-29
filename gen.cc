@@ -149,7 +149,8 @@ void IBGenerator::initialize() {
 
 void IBGenerator::incrementApp(int appidx)
 {
-  IBAppMsg*& p_msg = appMsgs[appidx];
+  appidx = curApp;
+  IBAppMsg* p_msg = appMsgs[appidx];
   unsigned int thisFlitIdx = p_msg->getFlitIdx();
   unsigned int thisPktIdx = p_msg->getPktIdx();
   // decide if we are at end of packet or not
@@ -159,11 +160,11 @@ void IBGenerator::incrementApp(int appidx)
       // we are done with the app msg
       EV << "-I- " << getFullPath() << " completed appMsg:" 
          << p_msg->getName() << omnetpp::endl;
-      if (p_msg->getDstLid() == 307)
-      {
-        std::cout << "Sent to H[306]" << " completed appMsg:" 
-         << p_msg->getName() << std::endl;
-      }
+      // if (p_msg->getDstLid() == 307)
+      // {
+      //   std::cout << "Sent to H[306]" << " completed appMsg:" 
+      //    << p_msg->getName() << std::endl;
+      // }
       delete p_msg;
       appMsgs[appidx] = NULL;
       send(new IBSentMsg(nullptr, IB_SENT_MSG), "in$o", appidx);
@@ -327,6 +328,7 @@ void IBGenerator::getNextAppMsg()
 
   p_cred->setIsBECN(0);
   p_cred->setIsFECN(0);
+  p_cred->setIsAppMsg(1);
 
   // provide serial number to packet head flits
   if (thisFlitIdx == 0) {
@@ -348,10 +350,10 @@ void IBGenerator::getNextAppMsg()
   BytesSentLastPeriod += p_cred->getByteLength(); 
   
   if (VLQ[vl].empty() && isRemoteHoQFree(vl)) {
-    if (p_msg->getDstLid() == 307)
-    {
-      std::cout << "Sent to H[306] pktidx: " << thisPktIdx + 1 << ", flitidx: " << thisFlitIdx + 1 << std::endl;
-    }
+    // if (p_msg->getDstLid() == 307)
+    // {
+    //   std::cout << "Sent to H[306] pktidx: " << thisPktIdx + 1 << ", flitidx: " << thisFlitIdx + 1 << std::endl;
+    // }
     sendDataOut(p_cred);
   } else {
     VLQ[vl].insert(p_cred);
@@ -361,6 +363,7 @@ void IBGenerator::getNextAppMsg()
 
   // now anvance to next FLIT or declare the app msg done
 
+  incrementApp(0);
   // decide if we are at end of packet or not
   // if (++thisFlitIdx == p_msg->getPktLenFlits()) {
   //   // we completed a packet was it the last?
@@ -831,10 +834,10 @@ void IBGenerator::sendDataOut(IBDataMsg *p_msg){
   }
   LastPktSendTime = omnetpp::simTime();
   
-  if (p_msg->getIsBECN() == 0)
-  {
-    incrementApp(0);
-  }
+  // if (p_msg->getIsAppMsg() && p_msg->getDstLid() == 307)
+  // {
+  //   std::cout << "Send to H[306]: pktidx " << p_msg->getPktIdx() << " msgidx " << p_msg->getMsgIdx() << std::endl;
+  // }
   sendDelayed(p_msg, delay_ns*1e-9, "out");
 
 

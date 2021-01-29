@@ -80,6 +80,7 @@ message IBDataMsg extends IBWireMsg
   bool beforeAnySwitch; // set to true by HCA and then to false by the first switch - to identify loops
   int isFECN;           //mark congested root
   int isBECN;           //carried in CNP
+  int isAppMsg;
   double RecvRate;
 }
 
