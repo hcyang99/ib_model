@@ -23,7 +23,7 @@
 // Overview:
 // =========
 // The task of the IB packet generator is to push FLITs (64 bytes) into
-// the network. It represents the scheduer that decides which "flow" will
+// the network. It represents the scheduler that decides which "flow" will
 // be served by the HCA.
 // 
 // The requests arrives on the in port and are saved per application.
@@ -49,7 +49,7 @@
 // VLA HoQ is empty. Otherwise sending of the packets to the VLA hardware 
 // on the receiving the "sent" event.
 // AppMsg events are input on the "in" port. When an AppMsg is completed 
-// it is sent back to the App therough the in port.
+// it is sent back to the App through the in port.
 //
 // App Selection:
 // ======================
