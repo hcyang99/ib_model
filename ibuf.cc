@@ -359,12 +359,12 @@ void IBInBuf::handlePush(IBWireMsg *p_msg)
 	 if (!hcaIBuf)
 		p_dataMsg->setBeforeAnySwitch(false);
 
-    if (p_dataMsg->getDstLid() == 307 && p_dataMsg->getIsAppMsg())
-    {
-      std::cout << "H[300] arrived pktidx " << p_dataMsg->getPktIdx() 
-        << " msgidx " << p_dataMsg->getMsgIdx() << " portnum " << curPacketOutPort << " event " << getSimulation()->getEventNumber()
-        << std::endl;
-    }
+    // if (p_dataMsg->getDstLid() == 307 && p_dataMsg->getIsAppMsg())
+    // {
+    //   std::cout << "H[300] arrived pktidx " << p_dataMsg->getPktIdx() 
+    //     << " msgidx " << p_dataMsg->getMsgIdx() << " portnum " << curPacketOutPort << " event " << getSimulation()->getEventNumber()
+    //     << std::endl;
+    // }
     
     // check out port is valid
     if ((curPacketOutPort < 0) ||  (curPacketOutPort >= (int)numPorts) ) {

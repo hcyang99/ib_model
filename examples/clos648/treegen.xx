@@ -105,7 +105,7 @@ int main()
     ofstream fdbs(fdbs_name);
     // output l2
     fdbs << 0 << ": " << num_nodes << " ";
-    for (int i = 0; i < num_l2; ++i)
+    for (int i = 0; i < num_l1; ++i)
     {
         for (int j = 0; j < nodes_per_l1; ++j)
         {
@@ -115,7 +115,7 @@ int main()
     fdbs << "\n";
 
     // output l1
-    for (int line = 0; line <= num_l1; ++line)
+    for (int line = 1; line <= num_l1; ++line)
     {
         fdbs << line << ": " << num_nodes << " ";
         for (int i = 1; i <= num_l1; ++i)
@@ -128,7 +128,7 @@ int main()
             else 
             {
                 for (int j = 0; j < nodes_per_l1; ++j)
-                    fdbs << i + nodes_per_l1 << " ";
+                    fdbs << i % nodes_per_l1 + nodes_per_l1 << " ";
             }
         }
         fdbs << "\n";
