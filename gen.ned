@@ -1,4 +1,3 @@
-
 ///////////////////////////////////////////////////////////////////////////
 //
 //         InfiniBand FLIT (Credit) Level OMNet++ Simulation Model
@@ -25,7 +24,7 @@ simple IBGenerator
  parameters:
   int srcLid; // the generator LID
   double flitSize @unit(B); // number of bytes in each credit/FLIT
-  int maxContPkts; // maximal continuous packets for msg
+  int maxContPkts; // maximal continoues packets for msg
   double genDlyPerByte @unit(ns); // the speed of generating new data
   double popDlyPerByte @unit(ns); // the speed of sending to VLA
   int maxQueuedPerVL; // the maximal outstanding FLITs in Q per VL
