@@ -23,7 +23,7 @@
 // Overview:
 // =========
 // The task of the IB packet generator is to push FLITs (64 bytes) into
-// the network. It represents the scheduer that decides which "flow" will
+// the network. It represents the scheduler that decides which "flow" will
 // be served by the HCA.
 // 
 // The requests arrives on the in port and are saved per application.
@@ -49,7 +49,7 @@
 // VLA HoQ is empty. Otherwise sending of the packets to the VLA hardware 
 // on the receiving the "sent" event.
 // AppMsg events are input on the "in" port. When an AppMsg is completed 
-// it is sent back to the App therough the in port.
+// it is sent back to the App through the in port.
 //
 // App Selection:
 // ======================
@@ -104,9 +104,9 @@ class IBGenerator : public omnetpp::cSimpleModule
  private:
   // parameters:
   unsigned int srcLid;       // the generator LID
-  double flitSize_B; // number of bytes in each credit/FLIT
   unsigned int maxContPkts;  // maximal continoues packets for msg
   unsigned int maxQueuedPerVL;// maximal num FLITs Queued on VL Q
+  double flitSize_B; // number of bytes in each credit/FLIT
   double genDlyPerByte_ns;    // the time it takes to bring Byte from PCIe
 
   // - shape
@@ -121,48 +121,48 @@ class IBGenerator : public omnetpp::cSimpleModule
   unsigned int curApp;              // currently surved app
   unsigned int numApps;             // width of the in port
   unsigned int numContPkts;         // count the number of packets of same app
-  std::vector< IBAppMsg *> appMsgs; // requested messages by app port
-  omnetpp::cQueue VLQ[8];                    // holds outstanding out packets if any
   unsigned int pktId;               // packets counter
+  omnetpp::cQueue VLQ[8];                    // holds outstanding out packets if any
   omnetpp::cMessage *pushMsg;                // the self push message
+  std::vector< IBAppMsg *> appMsgs; // requested messages by app port
   std::map<unsigned int, unsigned int> lastPktSnPerDst; // last packet serial number per DST
 
 
   // statistics
   omnetpp::simtime_t firstPktSendTime; // the first send time
   omnetpp::simtime_t lastPktSendTime; // the last send time
-  unsigned int totalBytesSent; // total number of bytes sent
   omnetpp::simtime_t timeLastSent; // Time last flit was sent
+  unsigned int totalBytesSent; // total number of bytes sent
 
   //for throughput statistics
   int on_throughput_gen;
   int on_average_throughput;
-  omnetpp::cMessage *timerMsg;        // the self push message
-  omnetpp::simtime_t timeLastPeriod; // last record time
   unsigned int BytesSentLastPeriod; // total number of bytes sent last period
   double timeStep_us; // total number of bytes sent last period
-  omnetpp::cOutVector       throughput;      // track the throughput over time
-  omnetpp::simtime_t       PktSendTime;      // track the rtt
   double startTime_s;
   double endTime_s;
-
+  omnetpp::cOutVector       throughput;      // track the throughput over time
+  omnetpp::cMessage *timerMsg;        // the self push message
+  omnetpp::simtime_t       PktSendTime;      // track the rtt
+  omnetpp::simtime_t timeLastPeriod; // last record time
 
   //for IBA congestion control
   int on_cc;
   int on_newcc;
-  std::vector<double> CCT_Index;                  // CCT_Index by app port
+  
   int CCT_Limit;
   int CCT_MIN;
-  unsigned int increaseStep_us;
-  omnetpp::cMessage *cctimerMsg;                    // the self push message for cc timer
-  omnetpp::cOutVector   gap; 
-  double send_interval_ns;    
-  omnetpp::cMessage *sendtimerMsg;                    // the self push message for cc timer 
-  double last_RecvRate;
-  double target;
   int last_BECNValue;
   int last_BECNValue_count;
+  unsigned int increaseStep_us;
+  double send_interval_ns;    
+  double last_RecvRate;
+  double target;
   double send_interval_ns_last;
+  std::vector<double> CCT_Index;                  // CCT_Index by app port
+  omnetpp::cMessage *sendtimerMsg;                    // the self push message for cc timer 
+  omnetpp::cMessage *cctimerMsg;                    // the self push message for cc timer
+  omnetpp::cOutVector   gap; 
 
   //for statistics
   int gen_BECN;
@@ -184,13 +184,11 @@ class IBGenerator : public omnetpp::cSimpleModule
   // Create a new FLIT for the current Packet
   IBDataMsg *getNewDataMsg();
 
+  int  isRemoteHoQFree(int vl);
+  unsigned int vlBySQ(unsigned sq);
   bool arbitrateApps();
   void getNextAppMsg();
   void genNextAppFLIT();
-  void initPacketParams(IBAppMsg *p_msg, unsigned int pktIdx);
-  unsigned int vlBySQ(unsigned sq);
-  int  isRemoteHoQFree(int vl);
-  void sendDataOut(IBDataMsg *p_msg); 
   void handlePush(omnetpp::cMessage *msg);
   void handleTimer(omnetpp::cMessage *msg);
   void handlePushFECN(IBPushFECNMsg *msg);             //receive FECN from sink module
@@ -198,8 +196,11 @@ class IBGenerator : public omnetpp::cSimpleModule
   void handleSent(IBSentMsg *p_sent);
   void handleApp(IBAppMsg *p_msg);
   void handleSendTimer(omnetpp::cMessage *msg);        //timer for send packets. Previously the send of packets are controlled by flow control
-  virtual ~IBGenerator();
+  void IBDataMsgSetup(IBDataMsg *msg)
   void incrementApp(int appidx);
+  void initPacketParams(IBAppMsg *p_msg, unsigned int pktIdx);
+  void sendDataOut(IBDataMsg *p_msg); 
+  virtual ~IBGenerator();
  protected:
   virtual void initialize();
   virtual void handleMessage(omnetpp::cMessage *msg);
