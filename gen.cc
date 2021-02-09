@@ -193,7 +193,7 @@ bool IBGenerator::arbitrateApps()
     if (appMsgs.at(app_no)) 
     {
       unsigned vl = vlBySQ(appMsgs.at(app_no)->getSQ());
-      if ((unsigned)VL.at(vl).getLength() < maxQueuedPerVL) 
+      if ((unsigned)VLQ.at(vl).getLength() < maxQueuedPerVL) 
       {
         curApp = app_no;
         EV << "-I-" << getFullPath() << " arbitrate apps selected:" 
@@ -792,7 +792,7 @@ IBGenerator::~IBGenerator()
   if (cctimerMsg) cancelAndDelete(cctimerMsg);
   if (sendtimerMsg) cancelAndDelete(sendtimerMsg);
 
-  for(int no = 0;i < appMsgs.size();no++)
+  for(int no = 0;no < appMsgs.size();no++)
   {
     if(appMsgs.at(no))
     {
