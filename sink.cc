@@ -650,6 +650,6 @@ IBSink::~IBSink()
   {
     IBDataMsg *p_dataMsg = (IBDataMsg *)queue.pop();
     if (p_dataMsg)
-      delete p_dataMsg
+      delete p_dataMsg;
   }
 }
