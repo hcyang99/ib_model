@@ -122,7 +122,7 @@ class IBGenerator : public omnetpp::cSimpleModule
   unsigned int numApps;             // width of the in port
   unsigned int numContPkts;         // count the number of packets of same app
   std::vector< IBAppMsg *> appMsgs; // requested messages by app port
-  omnetpp::cQueue VLQ[8];                    // holds outstanding out packets if any
+  std::vector <omnetpp::cQueue> VLQ;                    // holds outstanding out packets if any
   unsigned int pktId;               // packets counter
   omnetpp::cMessage *pushMsg;                // the self push message
   std::map<unsigned int, unsigned int> lastPktSnPerDst; // last packet serial number per DST

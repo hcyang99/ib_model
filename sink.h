@@ -26,44 +26,53 @@
 #include <omnetpp.h>
 
 // we use this to track each message
-class MsgTupple {
-public:
+class MsgTupple 
+{
+  public:
 	unsigned int srcId;
 	unsigned int appIdx;
 	unsigned int msgIdx;
-	MsgTupple(unsigned int s, unsigned int a, unsigned int m) {
-		srcId = s; appIdx = a; msgIdx = m;
+	MsgTupple(unsigned int s, unsigned int a, unsigned int m) 
+    {
+	    srcId = s; appIdx = a; msgIdx = m;
 	};
-	std::string dump() const {
+	std::string dump() const 
+    {
 		char buff[128];
 		sprintf(buff, " src: %d app: %d msg: %d", srcId, appIdx, msgIdx);
 		return(std::string(buff));
 	};
-	bool operator() (const MsgTupple &a,const MsgTupple &b) const {
-	            return ((a.srcId < b.srcId) || ((a.srcId == b.srcId) && (a.appIdx < b.appIdx)) || ((a.srcId == b.srcId) && (a.appIdx == b.appIdx) && (a.msgIdx < b.msgIdx)));
-	    }
-	bool operator== (const MsgTupple &b) const {
-	                return ((this->srcId == b.srcId)  && (this->appIdx == b.appIdx) && (this->msgIdx == b.msgIdx));
-	    }
-	bool operator< (const MsgTupple &b) const {
-	               return ((this->srcId < b.srcId)  ||
-	                       (this->srcId == b.srcId && (this->appIdx < b.appIdx)) ||
-	                       (this->srcId == b.srcId && (this->appIdx == b.appIdx) && (this->msgIdx < b.msgIdx)));
-	    }
+	bool operator() (const MsgTupple &a,const MsgTupple &b) const 
+    {
+	    return ((a.srcId < b.srcId) || ((a.srcId == b.srcId) && (a.appIdx < b.appIdx)) || ((a.srcId == b.srcId) && (a.appIdx == b.appIdx) && (a.msgIdx < b.msgIdx)));
+	}
+	bool operator== (const MsgTupple &b) const 
+    {
+	    return ((this->srcId == b.srcId)  && (this->appIdx == b.appIdx) && (this->msgIdx == b.msgIdx));
+	}
+	bool operator< (const MsgTupple &b) const 
+    {
+	    return ((this->srcId < b.srcId)  ||
+	    (this->srcId == b.srcId && (this->appIdx < b.appIdx)) ||
+	    (this->srcId == b.srcId && (this->appIdx == b.appIdx) && (this->msgIdx < b.msgIdx)));
+	}
 };
 
-class MsgTuppleLess {
-public:
-	bool operator()(const MsgTupple &a,const MsgTupple &b) {
+class MsgTuppleLess 
+{
+  public:
+	bool operator()(const MsgTupple &a,const MsgTupple &b) 
+    {
 		return ((a.srcId < b.srcId) ||
-				((a.srcId == b.srcId) && (a.appIdx < b.appIdx)) ||
-				((a.srcId == b.srcId) && (a.appIdx == b.appIdx) && (a.msgIdx < b.msgIdx)));
+		((a.srcId == b.srcId) && (a.appIdx < b.appIdx)) ||
+		((a.srcId == b.srcId) && (a.appIdx == b.appIdx) && (a.msgIdx < b.msgIdx)));
 	}
 };
 
 // store msg context
-class OutstandingMsgData {
-public:
+class OutstandingMsgData 
+{
+  public:
     omnetpp::simtime_t firstFlitTime;
 	omnetpp::simtime_t enoughPktsLastFlitTime;
 	unsigned int numPktsReceived;
@@ -106,6 +115,7 @@ class IBSink : public omnetpp::cSimpleModule
   void handleData(IBDataMsg *p_msg);
   void handleHiccup(omnetpp::cMessage *p_msg);
   void handleSinkTimer(IBSinkTimerMsg *p_msg);
+  void FECNMsgSetup (IBPushFECNMsg* FECNMsg, IBDataMsg *p_msg, double RecvRate);
 
   // statistics
   omnetpp::cDoubleHistogram PakcetFabricTime;
