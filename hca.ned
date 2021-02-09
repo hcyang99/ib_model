@@ -31,7 +31,7 @@ module HCA
         inout port;
 
     submodules:
-        app: IBApp {
+        app: IBRingAllreduceApp {
             parameters:
                 @display("p=313,170");
         }
@@ -72,6 +72,8 @@ module HCA
         }
     connections:
         app.out <--> gen.in[0];
+        sink.out --> app.in;
+
         gen.out --> vlarb.in[0];
         vlarb.sent[0] --> { @display("m=m,68,20,68,20"); } --> gen.sent;
         vlarb.out --> { @display("m=m,16,56,24,60"); } --> obuf.in;

@@ -199,6 +199,7 @@ class IBGenerator : public omnetpp::cSimpleModule
   void handleApp(IBAppMsg *p_msg);
   void handleSendTimer(omnetpp::cMessage *msg);        //timer for send packets. Previously the send of packets are controlled by flow control
   virtual ~IBGenerator();
+  void incrementApp(int appidx);
  protected:
   virtual void initialize();
   virtual void handleMessage(omnetpp::cMessage *msg);

@@ -96,7 +96,8 @@ void IBGenerator::initialize()
   last_BECNValue_count = 0;
   
   increaseStep_us = par("CCT_Timer");
-  Last_BECN.resize(100, 0);
+  constexpr int LID_MAX = 1024;
+  Last_BECN.resize(LID_MAX, 0);
   send_interval_ns = 1638.4 * 1.25 / 4;
   send_interval_ns_last = send_interval_ns;
   //send_interval_ns = genDlyPerByte_ns*flitSize_B;
@@ -121,6 +122,41 @@ void IBGenerator::initialize()
   output = "throughput" + std::to_string(srcLid) + ".txt";
   LastPktSendTime = 0;
   // no need for self start
+}
+
+void IBGenerator::incrementApp(int appidx)
+{
+  appidx = curApp;
+  IBAppMsg* p_msg = appMsgs.at(appidx);
+  unsigned int thisFlitIdx = p_msg->getFlitIdx();
+  unsigned int thisPktIdx = p_msg->getPktIdx();
+  // decide if we are at end of packet or not
+  if (++thisFlitIdx == p_msg->getPktLenFlits()) 
+  {
+    // we completed a packet was it the last?
+    if (++thisPktIdx == p_msg->getLenPkts()) 
+    {
+      // we are done with the app msg
+      EV << "-I- " << getFullPath() << " completed appMsg:" << p_msg->getName() << omnetpp::endl;
+      // if (p_msg->getDstLid() == 307)
+      // {
+      //   std::cout << "Sent to H[306]" << " completed appMsg:" 
+      //    << p_msg->getName() << std::endl;
+      // }
+      delete p_msg;
+      appMsgs.at(appidx) = NULL;
+      send(new IBSentMsg(nullptr, IB_SENT_MSG), "in$o", appidx);
+    } 
+    else 
+    {
+      p_msg->setPktIdx(thisPktIdx);
+      initPacketParams(p_msg, thisPktIdx);
+    }
+  } 
+  else 
+  {
+    p_msg->setFlitIdx(thisFlitIdx);
+  }
 }
 
 // initialize the packet with index pktIdx parameters on the message
@@ -155,7 +191,7 @@ int IBGenerator::isRemoteHoQFree(int vl)
   // call its method for checking and setting HoQ
   omnetpp::cGate *p_gate = gate("out")->getPathEndGate();
   IBVLArb *p_vla = dynamic_cast<IBVLArb *>(p_gate->getOwnerModule());
-  if (p_vla || strcmp(p_vla->getName(), "vlarb")) 
+  if (!p_vla || strcmp(p_vla->getName(), "vlarb")) 
   {
     error("cannot get VLA for generator out port");
   }
@@ -250,6 +286,7 @@ void IBGenerator::getNextAppMsg()
 
   p_cred->setIsBECN(0);
   p_cred->setIsFECN(0);
+  p_cred->setIsAppMsg(1);
 
   // provide serial number to packet head flits
   if (!p_msg->getFlitIdx()) 
@@ -288,9 +325,9 @@ void IBGenerator::getNextAppMsg()
   }
 
   // now anvance to next FLIT or declare the app msg done
-
+  incrementApp(0);
   // decide if we are at end of packet or not
-  if (p_msg->getFlitIdx() + 1 == p_msg->getPktLenFlits()) 
+  /*if (p_msg->getFlitIdx() + 1 == p_msg->getPktLenFlits()) 
   {
     // we completed a packet was it the last?
     if (p_msg->getPktIdx() + 1 == p_msg->getLenPkts())
@@ -310,7 +347,7 @@ void IBGenerator::getNextAppMsg()
   else 
   {
     p_msg->setFlitIdx(p_msg->getFlitIdx());
-  }
+  }*/
 }
 
 // arbitrate for next app, generate its FLIT and schedule next push
@@ -688,12 +725,6 @@ void IBGenerator::sendDataOut(IBDataMsg *p_msg)
   {   
     firstPktSendTime = LastPktSendTime;
     timeLastPeriod = firstPktSendTime;
-    if (!timerMsg->isScheduled() && on_throughput_gen > 0) 
-    {
-      //omnetpp::simtime_t delay = genDlyPerByte_ns*1e-9*flitSize_B;
-      // omnetpp::simtime_t delay = timeStep_us*1e-6;
-      //scheduleAt(omnetpp::simTime()+delay, timerMsg);
-    }
     //actual start timer
     if(on_cc && !on_newcc)
     {
