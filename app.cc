@@ -46,7 +46,8 @@ void IBApp::parseIntListParam(const char *parName, std::vector<int> &out)
   strcpy(tmpBuf, str);
   char *entStr = strtok(tmpBuf, " ,");
   if (out.size()) out.clear();
-  while (entStr) {
+  while (entStr) 
+  {
     cnt++;
     out.push_back(atoi(entStr));
     entStr = strtok(NULL, " ,");
@@ -54,7 +55,8 @@ void IBApp::parseIntListParam(const char *parName, std::vector<int> &out)
 }
 
 // main init of the module
-void IBApp::initialize(){
+void IBApp::initialize()
+{
   // init destination sequence related params
   dstSeqIdx = 0;
   dstSeqDone = 0;
@@ -65,47 +67,57 @@ void IBApp::initialize(){
 
   //  destination mode
   const char *dstModePar = par("dstMode");
-  if (!strcmp(dstModePar, "param")) {
+  if (!strcmp(dstModePar, "param")) 
+  {
     msgDstMode = DST_PARAM;
-  } else if (!strcmp(dstModePar, "seq_once")) {
+  } 
+  else if (!strcmp(dstModePar, "seq_once"))
+  {
     msgDstMode = DST_SEQ_ONCE;  
-  } else if (!strcmp(dstModePar, "seq_loop")) {
+  } 
+  else if (!strcmp(dstModePar, "seq_loop")) 
+  {
     msgDstMode = DST_SEQ_LOOP;
-  } else if (!strcmp(dstModePar, "seq_rand")) {
+  } 
+  else if (!strcmp(dstModePar, "seq_rand")) 
+  {
     msgDstMode = DST_SEQ_RAND;
-  } else {
+  } 
+  else 
+  {
     error("unknown dstMode: %s", dstModePar);
   }
 
   // destination related parameters
-  if (msgDstMode != DST_PARAM) {
+  if (msgDstMode != DST_PARAM) 
+  {
     const char *dstSeqVecFile = par("dstSeqVecFile");
     const int   dstSeqVecIdx  = par("dstSeqVecIdx");
     vecFiles   *vecMgr = vecFiles::get();
     dstSeq = vecMgr->getIntVec(dstSeqVecFile, dstSeqVecIdx);
-    if (dstSeq == NULL) {
-            //opp_error("fail to obtain dstSeq vector: %s/%d", dstSeqVecFile, dstSeqVecIdx);
-    }
     EV << "-I- Defined DST sequence of " << dstSeq->size() << " LIDs" << endl;
   }
   
   // Message Length Modes
   const char *msgLenModePar = par("msgLenMode");
-  if (!strcmp(msgLenModePar,"param")) {
+  if (!strcmp(msgLenModePar,"param")) 
+  {
     msgLenMode = MSG_LEN_PARAM;
-  } else if (!strcmp(msgLenModePar,"set")) {
+  }
+  if (!strcmp(msgLenModePar,"set")) 
+  {
     msgLenMode = MSG_LEN_SET;
-  } else {
-    //opp_error("unknown msgLenMode: %s", msgLenMode);
   }
   
   // need to init the set...
-  if (msgLenMode == MSG_LEN_SET) {
+  if (msgLenMode == MSG_LEN_SET) 
+  {
     parseIntListParam("msgLenSet", msgLenSet);
     vector<int> msgLenProbVec;
     parseIntListParam("msgLenProb", msgLenProbVec);
     
-    if (msgLenSet.size() != msgLenProbVec.size()) {
+    if (msgLenSet.size() != msgLenProbVec.size()) 
+    {
       error("provided msgLenSet size: %d != msgLenProb size: %d",
             msgLenSet.size(), msgLenProbVec.size());
     }
@@ -116,7 +128,7 @@ void IBApp::initialize(){
     msgLenProb.setRange(0,msgLenSet.size()-1);
     // HACK: there must be a faster way to do this!
     for (unsigned int i = 0; i < msgLenProbVec.size(); i++) 
-      for (int p = 0; p < msgLenProbVec[i]; p++)
+      for (int p = 0; p < msgLenProbVec.at(i); p++)
         msgLenProb.collect(i);
 
     EV << "-I- Defined Length Set of " << msgLenSet.size() << " size" << endl;
@@ -125,33 +137,33 @@ void IBApp::initialize(){
   seqIdxVec.setName("Dst-Sequence-Index");
   
   // if we are in param mode we may be getting a 0 as DST and thus keep quite
-  if (msgDstMode == DST_PARAM) {
+  if (msgDstMode == DST_PARAM) 
+  {
 	  int dstLid = par("dstLid");
 	  if (dstLid)
     {  
 		  scheduleAt(omnetpp::simTime() + startTime_s, new omnetpp::cMessage);
     }
     
-  } else {
+  } 
+  else 
+  {
 	  // Emulate a "done"
 	  scheduleAt(omnetpp::simTime(), new omnetpp::cMessage);
   }
   msgInfo.setName("msgInfo");
-
 }
 
 // get random msg len by the histogram
 unsigned int IBApp::getMsgLenByDistribution()
 {
- double r = msgLenProb.random();
- return int(r);
+  return int((double)msgLenProb.random());
 }
 
 // Initialize the parameters for a new message by sampling the 
 // relevant parameters and  allocate and init a new message
 IBAppMsg *IBApp::getNewMsg()
 {
-
   unsigned int msgMtuLen_B; // MTU of packet. same for entire message.
   unsigned int msgLen_P;    // the message length in packets
   unsigned int msgLen_B;    // the length of a message in bytes 
@@ -162,7 +174,8 @@ IBAppMsg *IBApp::getNewMsg()
   msgSQ = par("msgSQ");
 
   // obtain the message length
-  switch (msgLenMode) {
+  switch (msgLenMode) 
+  {
   case MSG_LEN_PARAM:
     msgLen_B = par("msgLength");
     break;
@@ -177,23 +190,26 @@ IBAppMsg *IBApp::getNewMsg()
   msgLen_P = msgLen_B / msgMtuLen_B;
 
   // obtain the message destination
-  switch (msgDstMode) {
+  switch (msgDstMode) 
+  {
   case DST_PARAM:
     msgDstLid = par("dstLid");
     break;
   case DST_SEQ_ONCE:
     msgDstLid = (*dstSeq)[dstSeqIdx++];
-    if (dstSeqIdx == dstSeq->size()) {
-            dstSeqDone = 1;
+    if (dstSeqIdx == dstSeq->size()) 
+    {
+      dstSeqDone = 1;
     }
-       seqIdxVec.record(dstSeqIdx);
+      seqIdxVec.record(dstSeqIdx);
     break;
   case DST_SEQ_LOOP:
     msgDstLid = (*dstSeq)[dstSeqIdx++];
-    if (dstSeqIdx == dstSeq->size()) {
-            dstSeqIdx = 0;
+    if (dstSeqIdx == dstSeq->size()) 
+    {
+      dstSeqIdx = 0;
     }
-       seqIdxVec.record(dstSeqIdx);
+      seqIdxVec.record(dstSeqIdx);
     break;
   case DST_SEQ_RAND:
     dstSeqIdx = intuniform(0,dstSeq->size()-1);
@@ -219,12 +235,14 @@ IBAppMsg *IBApp::getNewMsg()
   return p_msg;
 }
 
-void IBApp::handleMessage(omnetpp::cMessage *p_msg){
+void IBApp::handleMessage(omnetpp::cMessage *p_msg)
+{
   delete p_msg;
   double delay_ns = par("msg2msgGap");
 
   //if (!dstSeqDone && omnetpp::simTime() < endTime_s ) {
-  if (!dstSeqDone /*&& omnetpp::simTime() + delay_ns*1e-9 < endTime_s*/ && msgIdx < msgNum) {
+  if (!dstSeqDone /*&& omnetpp::simTime() + delay_ns*1e-9 < endTime_s*/ && msgIdx < msgNum) 
+  {
   //if (!dstSeqDone && omnetpp::simTime() + 1024*1e-9 < endTime_s /*&& msgIdx < msgNum*/) {
     // generate a new messaeg and send after hiccup
     IBAppMsg *p_new = getNewMsg();
@@ -240,10 +258,10 @@ void IBApp::handleMessage(omnetpp::cMessage *p_msg){
 
 void IBApp::finish()
 {
-    ;
+  ;
 }
 
 IBApp::~IBApp()
 {
-    return;
+  return;
 }

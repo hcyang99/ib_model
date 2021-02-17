@@ -191,7 +191,7 @@ int IBGenerator::isRemoteHoQFree(int vl)
   // call its method for checking and setting HoQ
   omnetpp::cGate *p_gate = gate("out")->getPathEndGate();
   IBVLArb *p_vla = dynamic_cast<IBVLArb *>(p_gate->getOwnerModule());
-  if (!p_vla || strcmp(p_vla->getName(), "vlarb")) 
+  if (p_vla == NULL || strcmp(p_vla->getName(), "vlarb")) 
   {
     error("cannot get VLA for generator out port");
   }

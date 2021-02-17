@@ -61,7 +61,8 @@ void IBOutBuf::initialize()
   prevFCTime = 0;
   isMinTimeUpdate = 0;
 
-  for ( int i = 0; i < maxVL+1; i++ ) {
+  for ( int i = 0; i < maxVL+1; i++ ) 
+  {
     prevSentFCTBS.push_back(-9999);
     prevSentFCCL.push_back(-9999);
     FCCL.push_back(0);
@@ -73,14 +74,17 @@ void IBOutBuf::initialize()
   WATCH_VECTOR(FCTBS);
   WATCH_VECTOR(FCCL);
 
-  if (Enabled) {
+  if (Enabled) 
+  {
     // we do want to have a continous flow of MinTime
     p_minTimeMsg = new omnetpp::cMessage("minTime", IB_MINTIME_MSG);
     
     // Send the first mintime immediately so that all is initialised 
     // when we get first packets
     scheduleAt(omnetpp::simTime() , p_minTimeMsg);
-  } else {
+  } 
+  else 
+  {
 	 EV << "-I- " << getFullPath() << " port DISABLED " << omnetpp::endl;
   }
 
@@ -107,25 +111,29 @@ void IBOutBuf::sendOrQueuePortLoadUpdateMsg(unsigned int rank, unsigned int firs
 	p_msg->setByteLength(8);
 
 	// if there is no other message on the wire sneak out
-	if ( ! p_popMsg->isScheduled() ) {
+	if ( ! p_popMsg->isScheduled() ) 
+  {
 		sendOutMessage(p_msg);
-	} else {
-	    EV << "-I- " << getFullPath() << " queued port-load msg. mgtQ depth " << mgtQ.length() << omnetpp::endl;
-	    mgtQ.insert(p_msg);
-	}
+	} else 
+  {
+    EV << "-I- " << getFullPath() << " queued port-load msg. mgtQ depth " << mgtQ.length() << omnetpp::endl;
+    mgtQ.insert(p_msg);
+}
 }
 
 // send the message out
 // Init a new pop message and schedule it after delay
 // Note that at this stage the Q might be empty but a
 // data packet will be streamed out
-void IBOutBuf::sendOutMessage(IBWireMsg *p_msg) {
+void IBOutBuf::sendOutMessage(IBWireMsg *p_msg) 
+{
   
   EV << "-I- " << getFullPath() << " sending msg:" << p_msg->getName() 
      << " at time " << omnetpp::simTime() <<omnetpp::endl;
 
   // track out going packets
-  if ( p_msg->getKind() == IB_DATA_MSG ) {
+  if ( p_msg->getKind() == IB_DATA_MSG ) 
+  {
     IBDataMsg *p_dataMsg = (IBDataMsg *)p_msg;
     
     // track if we are in the middle of packet
@@ -134,7 +142,7 @@ void IBOutBuf::sendOutMessage(IBWireMsg *p_msg) {
     else if (p_dataMsg->getFlitSn() + 1 == p_dataMsg->getPacketLength())
       insidePacket = 0;
     
-    FCTBS[p_msg->getVL()]++;
+    FCTBS.at(p_msg->getVL())++;
 
     flitsSources.collect(p_dataMsg->getSrcLid());
 
@@ -146,7 +154,8 @@ void IBOutBuf::sendOutMessage(IBWireMsg *p_msg) {
   }
   send(p_msg, "out");
 
-  if (p_popMsg &&  ! p_popMsg->isScheduled() ) {
+  if (p_popMsg &&  ! p_popMsg->isScheduled() ) 
+  {
     scheduleAt(gate("out")->getTransmissionChannel()->getTransmissionFinishTime(), p_popMsg);
   }
 
@@ -155,11 +164,12 @@ void IBOutBuf::sendOutMessage(IBWireMsg *p_msg) {
     firstPktSendTime = omnetpp::simTime();
     //if(hcaOBuf)
     //{
-      if (!timerMsg->isScheduled() && on_throughput_obuf > 0) {
-              //omnetpp::simtime_t delay = genDlyPerByte_ns*1e-9*flitSize_B;
-          omnetpp::simtime_t delay = timeStep_us*1e-6;
-          scheduleAt(omnetpp::simTime()+delay, timerMsg);
-      }
+    if (!timerMsg->isScheduled() && on_throughput_obuf > 0) 
+    {
+            //omnetpp::simtime_t delay = genDlyPerByte_ns*1e-9*flitSize_B;
+      omnetpp::simtime_t delay = timeStep_us*1e-6;
+      scheduleAt(omnetpp::simTime()+delay, timerMsg);
+    }
     //}
   }
 
@@ -173,15 +183,17 @@ void IBOutBuf::sendOutMessage(IBWireMsg *p_msg) {
 
 // Q a message to be sent out.
 // If there is no pop message pending can directly send...
-void
-IBOutBuf::qMessage(IBDataMsg *p_msg) {
+void IBOutBuf::qMessage(IBDataMsg *p_msg) 
+{
   // we stamp it to know how much time it stayed with us
   //p_msg->setTimestamp(simTime());
   
-  if ( p_popMsg && p_popMsg->isScheduled() ) {
-    if ( qSize <= queue.length() ) {
-        error("-E- %s  need to insert into a full Q. qSize:%d qLength:%d",
-                getFullPath().c_str(), qSize, queue.length());
+  if ( p_popMsg && p_popMsg->isScheduled() ) 
+  {
+    if ( qSize <= queue.length() ) 
+    {
+      error("-E- %s  need to insert into a full Q. qSize:%d qLength:%d",
+              getFullPath().c_str(), qSize, queue.length());
     }
     
     EV << "-I- " << getFullPath() << " queued data msg:" << p_msg->getName()
@@ -189,12 +201,17 @@ IBOutBuf::qMessage(IBDataMsg *p_msg) {
 
     queue.insert(p_msg);
     //qDepth.record(queue.length());
-  } else {
+  } 
+  else 
+  {
     // track the time this PACKET (all credits) spent in the Q
     // the last credit of a packet always
-    if ( p_msg->getFlitSn() + 1 == p_msg->getPacketLength() ) {
+    if ( p_msg->getFlitSn() + 1 == p_msg->getPacketLength() )
+    {
       packetStoreHist.collect( omnetpp::simTime() - packetHeadTimeStamp );
-    } else if ( p_msg->getFlitSn() == 0 ) {
+    } 
+    else if ( !p_msg->getFlitSn() ) 
+    {
       packetHeadTimeStamp = p_msg->getTimestamp();
     }
     sendOutMessage(p_msg);
@@ -221,14 +238,17 @@ int IBOutBuf::sendFlowControl()
   if (! isMinTimeUpdate && ! queue.empty())
     return(0);
 
-  if (curFlowCtrVL >= maxVL+1) {
+  if (curFlowCtrVL >= maxVL+1) 
+  {
     return(0);
   }
 
-  for (; (sentUpdate == 0) && (curFlowCtrVL < maxVL+1); curFlowCtrVL++ ) {
+  for (; (sentUpdate == 0) && (curFlowCtrVL < maxVL+1); curFlowCtrVL++ ) 
+  {
     int i = curFlowCtrVL;
     
-    if (i == 0) {
+    if (!i) 
+    {
       // avoid the first send...
       if (prevFCTime != 0)
         // flowControlDelay.collect(simTime() - prevFCTime);
@@ -237,7 +257,8 @@ int IBOutBuf::sendFlowControl()
     
     // We may have ignored prevSentFCTBS[i] == FCTBS[i] since the other side
     // tracks ABR but the spec asks us to send anyways
-    if ( (prevSentFCTBS[i] != FCTBS[i]) || (prevSentFCCL[i] != FCCL[i]) ) {
+    if ( (prevSentFCTBS.at(i) != FCTBS.at(i)) || (prevSentFCCL.at(i) != FCCL.at(i)) ) 
+    {
       // create a new message and place in the Q
       char name[128];
       sprintf(name, "fc-%d-%ld", i, flowCtrlId++);
@@ -245,10 +266,10 @@ int IBOutBuf::sendFlowControl()
       
       p_msg->setBitLength(8*8);
       p_msg->setVL(i);
-      p_msg->setFCCL(FCCL[i]);
-      p_msg->setFCTBS(FCTBS[i]);
-      prevSentFCCL[i] = FCCL[i];
-      prevSentFCTBS[i] = FCTBS[i];
+      p_msg->setFCCL(FCCL.at(i));
+      p_msg->setFCTBS(FCTBS.at(i));
+      prevSentFCCL.at(i) = FCCL.at(i);
+      prevSentFCTBS.at(i) = FCTBS.at(i);
       EV << "-I- " << getFullPath() << " generated:" << p_msg->getName() 
          << " vl: " << p_msg->getVL() << " FCTBS: " 
          << p_msg->getFCTBS() << " FCCL: " << p_msg->getFCCL() << omnetpp::endl;
@@ -259,7 +280,8 @@ int IBOutBuf::sendFlowControl()
     }
 
     // send management message if no FC sent
-    if (!sentUpdate && !mgtQ.empty()) {
+    if (!sentUpdate && !mgtQ.empty()) 
+    {
     	IBWireMsg *p_msg = (IBWireMsg*)mgtQ.pop();
     	EV << "-I- " << getFullPath() << " popped mgt message:"  << p_msg->getName() << omnetpp::endl;
     	sendOutMessage(p_msg);
@@ -270,7 +292,6 @@ int IBOutBuf::sendFlowControl()
     if ( (curFlowCtrVL == maxVL+1) && mgtQ.empty())
       isMinTimeUpdate = 0;
   }
-
   return(sentUpdate);
 }
 
@@ -285,7 +306,8 @@ void IBOutBuf::handlePop()
   // if we got a pop - it means the previous message just left the
   // OBUF. In that case if it was a data credit packet we have now a
   // new space for it. tell the VLA.
-  if (prevPopWasDataCredit) {
+  if (prevPopWasDataCredit) 
+  {
     omnetpp::cMessage *p_msg = new omnetpp::cMessage("free", IB_FREE_MSG);
     EV << "-I- " << getFullPath() << " sending 'free' to VLA as last "
        << " packet just completed." << omnetpp::endl;
@@ -293,7 +315,8 @@ void IBOutBuf::handlePop()
   }
 
   // first send mgt msg then try sending a flow control if required:
-  if (!mgtQ.empty()) {
+  if (!mgtQ.empty()) 
+  {
 	  IBWireMsg *p_msg = (IBWireMsg*)mgtQ.pop();
 	  EV << "-I- " << getFullPath() << " first pop mgt message:"  << p_msg->getName() << omnetpp::endl;
 	  sendOutMessage(p_msg);
@@ -301,17 +324,21 @@ void IBOutBuf::handlePop()
 	  return;
   }
 
-  if (!insidePacket) {
-	  if (sendFlowControl()) {
+  if (!insidePacket) 
+  {
+	  if (sendFlowControl()) 
+    {
 		  prevPopWasDataCredit = 0;
 		  return;
 	  }
   }
 
   // got to pop from the queue if anything there
-  if ( !queue.empty() ) {
+  if ( !queue.empty() ) 
+  {
     IBWireMsg *p_msg = (IBWireMsg *)queue.pop();
-    if ( p_msg->getKind() == IB_DATA_MSG ) {
+    if ( p_msg->getKind() == IB_DATA_MSG ) 
+    {
       IBDataMsg *p_cred = (IBDataMsg *)p_msg;
       EV << "-I- " << getFullPath() << " popped data message:" 
          << p_cred->getName() << omnetpp::endl;
@@ -319,19 +346,26 @@ void IBOutBuf::handlePop()
       
       // track the time this PACKET (all credits) spent in the Q
       // the last credit of a packet always
-      if ( p_cred->getFlitSn() + 1 == p_cred->getPacketLength() ) {
+      if ( p_cred->getFlitSn() + 1 == p_cred->getPacketLength() ) 
+      {
         packetStoreHist.collect( omnetpp::simTime() - packetHeadTimeStamp );
-      } else if ( p_cred->getFlitSn() == 0 ) {
+      } 
+      else if ( !p_cred->getFlitSn() ) 
+      {
         packetHeadTimeStamp = p_msg->getTimestamp();
       }
 
       // we just popped a real credit 
       prevPopWasDataCredit = 1;
-    } else {
+    } 
+    else 
+    {
       EV << "-E- " << getFullPath() << " unknown message type to pop:"
          << p_msg->getKind() << omnetpp::endl;
     }
-  } else {
+  } 
+  else 
+  {
     // The queue is empty. Next message needs to immediately pop
     // so we clean this event
     EV << "-I- " << getFullPath() << " nothing to POP" << omnetpp::endl;
@@ -349,7 +383,8 @@ void IBOutBuf::handleMinTime()
   curFlowCtrVL = 0;
   isMinTimeUpdate = 1;
   // if we do not have any pop message - we need to create one immediatly
-  if (p_popMsg && ! p_popMsg->isScheduled() ) {
+  if (p_popMsg && ! p_popMsg->isScheduled() ) 
+  {
     scheduleAt(omnetpp::simTime() + 1e-9, p_popMsg);
   }
   
@@ -363,7 +398,7 @@ void IBOutBuf::handleMinTime()
 void IBOutBuf::handleRxCred(IBRxCredMsg *p_msg)
 {
   // update FCCL...
-  FCCL[p_msg->getVL()] = p_msg->getFCCL();
+  FCCL.at(p_msg->getVL()) = p_msg->getFCCL();
   //delete p_msg;
   cancelAndDelete(p_msg);
 }
@@ -386,22 +421,16 @@ void IBOutBuf::handleTimer(omnetpp::cMessage *p_msg)
 
 void IBOutBuf::handleMessage(omnetpp::cMessage *p_msg)
 {
-  int msgType = p_msg->getKind();
-  if ( msgType == IB_POP_MSG ) {
-    handlePop();
-  } else if ( msgType == IB_MINTIME_MSG ) {
-    handleMinTime();
-  } else if ( msgType == IB_DATA_MSG ) {
-    qMessage((IBDataMsg*)p_msg);
-  } else if ( msgType == IB_RXCRED_MSG ) {
-    handleRxCred((IBRxCredMsg*)p_msg);
-  } else if (msgType == IB_TIMER_MSG){
-    handleTimer(p_msg);
-  } 
-  else {
-    EV << "-E- " << getFullPath() << " do no know how to handle message:"
-       << msgType << omnetpp::endl;
-    delete p_msg;
+  switch (p_msg->getKind())
+  {
+    case 1  : qMessage((IBDataMsg*)p_msg); break; // in the case of IB_DATA_MSG
+    case 5  : handleRxCred((IBRxCredMsg*)p_msg); // in the case of IB_RXCRED_MSG
+    case 6  : handleMinTime(); break; // in the case of IB_MINTIME_MSG
+    case 7  : handlePop(); break; // in the case of IB_POP_MSG
+    case 14 : handleTimer(p_msg); break; // in the case of IB_TIMER_MSG
+    default : EV << "-E- " << getFullPath() << " do no know how to handle message:"
+              << p_msg->getKind() << omnetpp::endl;
+              delete p_msg;
   }
 }
 
@@ -430,7 +459,8 @@ void IBOutBuf::finish()
   //recordScalar("sent BECN",sent_BECN);
 }
 
-IBOutBuf::~IBOutBuf() {
+IBOutBuf::~IBOutBuf() 
+{
   if (p_popMsg) cancelAndDelete(p_popMsg);
   if (timerMsg) cancelAndDelete(timerMsg);
   if (p_minTimeMsg) cancelAndDelete(p_minTimeMsg);

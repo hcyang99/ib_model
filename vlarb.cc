@@ -38,21 +38,25 @@ void IBVLArb::setVLArbParams(const char *cfgStr, ArbTableEntry *tbl)
   buf = new char[strlen(cfgStr)+1];
   strcpy(buf, cfgStr);
   p_vl = strtok(buf, ":");
-  while (p_vl && (idx < 8)) {
+  while (p_vl && (idx < 8)) 
+  {
     int vl = atoi(p_vl);
-    if (vl > 8) {
+    if (vl > 8) 
+    {
       error("-E- %s VL: %d > 8 in VLA: %s ",
                 getFullPath().c_str(), vl, cfgStr);
     }
 
     int weight;
     p_weight = strtok(NULL, ", ");
-    if (! p_weight) {
+    if (! p_weight) 
+    {
       error("-E- %s badly formatted VLA: %s",
                 getFullPath().c_str(), cfgStr);
     }
     weight = atoi(p_weight);
-    if (weight > 255) {
+    if (weight > 255) 
+    {
       error("-E- %s weight: %d > 255 in VLA: %s",
                 getFullPath().c_str(), weight, cfgStr);
     }
@@ -65,7 +69,8 @@ void IBVLArb::setVLArbParams(const char *cfgStr, ArbTableEntry *tbl)
   }
    
   // the rest are zeros
-  for (;idx < 8; idx++ ) {
+  for (;idx < 8; idx++ ) 
+  {
     tbl[idx].VL = 0;
     tbl[idx].weight = 0;
     tbl[idx].used = 0;
@@ -84,7 +89,8 @@ void IBVLArb::initialize()
   useFCFSRQArb = par("useFCFSRQArb");
   markrate = par("markrate");
 
-  if (!hcaArb) {
+  if (!hcaArb) 
+  {
     EV << "-I- " << getFullPath() << " is Switch IBuf " << getId() <<  endl;
     cModule*    sw = getParentModule()->getParentModule();
     VSWDelay = sw->par("VSWDelay");
@@ -116,8 +122,10 @@ void IBVLArb::initialize()
   for (unsigned int pn = 0; pn < numInPorts; pn++)
     inPktHoqPerVL[pn] = new IBDataMsg*[maxVL+1];
   
-  for (unsigned int pn = 0; pn < numInPorts; pn++ ) {
-    for (unsigned int vl = 0; vl < maxVL+1; vl++ ) {
+  for (unsigned int pn = 0; pn < numInPorts; pn++ ) 
+  {
+    for (unsigned int vl = 0; vl < maxVL+1; vl++ ) 
+    {
       inPktHoqPerVL[pn][vl] = NULL;
       WATCH(inPktHoqPerVL[pn][vl]);
     }
@@ -133,7 +141,8 @@ void IBVLArb::initialize()
       hoqFreeProvided[pn][vl] = 0;
   
   // Init FCCL and FCTBS and the last sent port...
-  for (unsigned int vl = 0; vl < maxVL+1; vl++ ) {
+  for (unsigned int vl = 0; vl < maxVL+1; vl++ ) 
+  {
     LastSentPort.push_back(0);
     FCTBS.push_back(0);
     FCCL.push_back(0);
@@ -172,7 +181,8 @@ int IBVLArb::getOBufFCTBS(unsigned int vl)
 {
   omnetpp::cGate *p_gate = gate("out")->getPathEndGate();
   IBOutBuf *p_oBuf = dynamic_cast<IBOutBuf *>(p_gate->getOwnerModule());
-  if ((p_oBuf == NULL) || strcmp(p_oBuf->getName(), "obuf")) {
+  if ((p_oBuf == NULL) || strcmp(p_oBuf->getName(), "obuf")) 
+  {
      error("-E- %s fail to get OBUF from out port", getFullPath().c_str());
   }
   return(p_oBuf->getFCTBS(vl));
@@ -194,7 +204,8 @@ int IBVLArb::isHoQFree(unsigned int pn, unsigned int vl)
   // and when they actually send we keep a parallel array 
   // for tracking "free" HoQ returned and clear them on
   // message push
-  if ((inPktHoqPerVL[pn][vl] == NULL) && (hoqFreeProvided[pn][vl] == 0)) {
+  if ((inPktHoqPerVL[pn][vl] == NULL) && (hoqFreeProvided[pn][vl] == 0)) 
+  {
     hoqFreeProvided[pn][vl] = 1;
     return(1);
   }
@@ -208,9 +219,12 @@ void IBVLArb::sendOutMessage(IBDataMsg *p_msg)
   omnetpp::simtime_t delay = p_msg->getByteLength() * popDelayPerByte_s;
   // we can only send if there is no such message as we use
   // it to flag the port is clear to send.
-  if ( ! p_popMsg->isScheduled() ) {
+  if (!p_popMsg->isScheduled()) 
+  {
     scheduleAt(omnetpp::simTime() + delay, p_popMsg);
-  } else {
+  } 
+  else 
+  {
     error("-E- %s How can we have two messgaes leaving at the same time",
               getFullPath().c_str());
     return;
@@ -275,15 +289,18 @@ int IBVLArb::isValidArbitration(unsigned int portNum, unsigned int vl,
   }
 
   // only for non HCA Arbiters and in case of new packet being sent
-  if (!hcaArb && isFirstPacket) {
+  if (!hcaArb && isFirstPacket) 
+  {
     omnetpp::cGate *p_remOutPort = gate("in", portNum)->getPathStartGate();
     IBInBuf *p_inBuf = dynamic_cast<IBInBuf *>(p_remOutPort->getOwnerModule());
-    if ((p_inBuf == NULL) || strcmp(p_inBuf->getName(), "ibuf") ) {
+    if ((p_inBuf == NULL) || strcmp(p_inBuf->getName(), "ibuf") ) 
+    {
       error("-E- %s fail to get InBuf from in port: %d",
                 getFullPath().c_str(), portNum);
     }
 
-    if (!p_inBuf->incrBusyUsedPorts()) {  
+    if (!p_inBuf->incrBusyUsedPorts()) 
+    {  
       EV << "-I- " << getFullPath() 
          << " no free ports on IBUF - invalid arbitration." << endl;
       return 0;
@@ -297,47 +314,52 @@ int IBVLArb::isValidArbitration(unsigned int portNum, unsigned int vl,
 
 // find the next port that has data on this VL and not in the middle of
 // transmission. return 1 if found
-int
-IBVLArb::roundRobinNextRQForVL(int numCredits, unsigned int curPortNum, short int vl,
+int IBVLArb::roundRobinNextRQForVL(int numCredits, unsigned int curPortNum, short int vl,
 							   int &nextPortNum)
 {
 	IBDataMsg *p_flit;
 	// start with the next port to the last one we sent
-    for (unsigned int pn = 1; pn <= numInPorts; pn++) {
-      unsigned int portNum = (curPortNum + pn) % numInPorts;
-      p_flit = inPktHoqPerVL[portNum][vl];
-      // do we have anything to send?
-      if (p_flit == NULL)  continue;
+  for (unsigned int pn = 1; pn <= numInPorts; pn++) 
+  {
+    unsigned int portNum = (curPortNum + pn) % numInPorts;
+    p_flit = inPktHoqPerVL[portNum][vl];
+    // do we have anything to send?
+    if (!p_flit)  continue;
 
-      // just make sure it is a first credit
+    // just make sure it is a first credit
 
-      // we can have another messages leaving at the same time so
-      // ignore that port/vl if in the middle of another transfer
-      if (p_flit->getFlitSn()) {
-        EV << "-I- " << getFullPath() << " ignoring non first packet:"
-           << p_flit->getName() << " on port:" << portNum
-           << " vl:" << vl << endl;
-      } else {
-        // so can we send it?
-        if (p_flit->getPacketLength() <= numCredits) {
-        	nextPortNum = portNum;
-        	return(1);
-        } else {
-          EV << "-I- " << getFullPath() << " not enough credits available:"
-             << numCredits << " < " << p_flit->getPacketLength()
-             << " required for sending:"
-             << p_flit->getName() << " on port:" << portNum
-             << " vl:" << vl << endl;
-        }
+    // we can have another messages leaving at the same time so
+    // ignore that port/vl if in the middle of another transfer
+    if (p_flit->getFlitSn()) 
+    {
+      EV << "-I- " << getFullPath() << " ignoring non first packet:"
+          << p_flit->getName() << " on port:" << portNum
+          << " vl:" << vl << endl;
+    } 
+    else 
+    {
+      // so can we send it?
+      if (p_flit->getPacketLength() <= numCredits) 
+      {
+        nextPortNum = portNum;
+        return(1);
+      } 
+      else 
+      {
+        EV << "-I- " << getFullPath() << " not enough credits available:"
+            << numCredits << " < " << p_flit->getPacketLength()
+            << " required for sending:"
+            << p_flit->getName() << " on port:" << portNum
+            << " vl:" << vl << endl;
       }
     }
-    return(0);
+  }
+  return(0);
 }
 
 // find the next port that has oldest data on this VL and not in the middle of
 // transmission. return 1 if found
-int
-IBVLArb::firstComeFirstServeNextRQForVL(int numCredits, unsigned int curPortNum, short int vl,
+int IBVLArb::firstComeFirstServeNextRQForVL(int numCredits, unsigned int curPortNum, short int vl,
 							   int &nextPortNum)
 {
 	IBDataMsg *p_flit;
@@ -346,46 +368,54 @@ IBVLArb::firstComeFirstServeNextRQForVL(int numCredits, unsigned int curPortNum,
 	int oldestPortNum;
 
 	// start with the next port to the last one we sent
-    for (unsigned int pn = 1; pn <= numInPorts; pn++) {
-      unsigned int portNum = (curPortNum + pn) % numInPorts;
-      p_flit = inPktHoqPerVL[portNum][vl];
-      // do we have anything to send?
-      if (p_flit == NULL)  continue;
+  for (unsigned int pn = 1; pn <= numInPorts; pn++) 
+  {
+    unsigned int portNum = (curPortNum + pn) % numInPorts;
+    p_flit = inPktHoqPerVL[portNum][vl];
+    // do we have anything to send?
+    if (p_flit == NULL)  continue;
 
-      // just make sure it is a first credit
+    // just make sure it is a first credit
 
-      // we can have another messages leaving at the same time so
-      // ignore that port/vl if in the middle of another transfer
-      if (p_flit->getFlitSn()) {
-        EV << "-I- " << getFullPath() << " ignoring non first packet:"
-           << p_flit->getName() << " on port:" << portNum
-           << " vl:" << vl << endl;
-      } else {
-          omnetpp::simtime_t thisFlitTime = p_flit->getSwTimeStamp();
-    	  // now look for the oldest
-    	  if (!p_oldestFlit || oldestFlitTime > thisFlitTime) {
-    		  p_oldestFlit = p_flit;
-    		  oldestFlitTime = thisFlitTime;
-    		  oldestPortNum = portNum;
-    	  }
+    // we can have another messages leaving at the same time so
+    // ignore that port/vl if in the middle of another transfer
+    if (p_flit->getFlitSn()) 
+    {
+      EV << "-I- " << getFullPath() << " ignoring non first packet:"
+          << p_flit->getName() << " on port:" << portNum
+          << " vl:" << vl << endl;
+    } 
+    else 
+    {
+      omnetpp::simtime_t thisFlitTime = p_flit->getSwTimeStamp();
+      // now look for the oldest
+      if (!p_oldestFlit || oldestFlitTime > thisFlitTime) 
+      {
+        p_oldestFlit = p_flit;
+        oldestFlitTime = thisFlitTime;
+        oldestPortNum = portNum;
       }
     }
+  }
 
-    if (!p_oldestFlit) return(0);
+  if (!p_oldestFlit) return(0);
 
     // so can we send it?
-    if (p_oldestFlit->getPacketLength() <= numCredits) {
-    	nextPortNum = oldestPortNum;
-    	return(1);
-    } else {
-      EV << "-I- " << getFullPath() << " not enough credits available:"
-         << numCredits << " < " << p_oldestFlit->getPacketLength()
-         << " required for sending:"
-         << p_oldestFlit->getName() << " on port:" << oldestPortNum
-         << " vl:" << vl << endl;
-    }
+  if (p_oldestFlit->getPacketLength() <= numCredits) 
+  {
+    nextPortNum = oldestPortNum;
+    return(1);
+  } 
+  else 
+  {
+    EV << "-I- " << getFullPath() << " not enough credits available:"
+        << numCredits << " < " << p_oldestFlit->getPacketLength()
+        << " required for sending:"
+        << p_oldestFlit->getName() << " on port:" << oldestPortNum
+        << " vl:" << vl << endl;
+  }
 
-    return(0);
+  return(0);
 }
 
 // Find the port and VL to be sent next from a High or Low entries.
@@ -397,8 +427,7 @@ IBVLArb::firstComeFirstServeNextRQForVL(int numCredits, unsigned int curPortNum,
 // * Update the provided entry index
 // * Update the port number
 // * update the VL
-int
-IBVLArb::findNextSend( unsigned int &curIdx, ArbTableEntry *Tbl, 
+int IBVLArb::findNextSend( unsigned int &curIdx, ArbTableEntry *Tbl, 
                        unsigned int &curPortNum, unsigned int &curVl )
 {
   int idx;
@@ -408,7 +437,8 @@ IBVLArb::findNextSend( unsigned int &curIdx, ArbTableEntry *Tbl,
   int portNum;
   
   // we need to scan through all entries starting with last one used
-  for (unsigned int i = 0; i <= maxVL+1 ; i++) {
+  for (unsigned int i = 0; i <= maxVL+1 ; i++) 
+  {
     idx = (curIdx + i) % (maxVL+1);
     // if we changed index we need to restat the weight counter
     if (i) Tbl[idx].used = 0;
@@ -419,20 +449,20 @@ IBVLArb::findNextSend( unsigned int &curIdx, ArbTableEntry *Tbl,
     vl = Tbl[idx].VL;
     
     // how many credits are available for this VL
-    numCredits = FCCL[vl] - FCTBS[vl];
+    numCredits = FCCL.at(vl) - FCTBS.at(vl);
 
     if (useFCFSRQArb)
     	found = firstComeFirstServeNextRQForVL(numCredits, curPortNum, vl, portNum);
     else
     	found = roundRobinNextRQForVL(numCredits, curPortNum, vl, portNum);
-    if (found)  {
+    if (found)  
+    {
       curIdx = idx;
       curPortNum = portNum;
       curVl = vl;
       break;
     }
   }
-  
   return(found);
 }
 
@@ -450,12 +480,11 @@ IBVLArb::findNextSendOnVL0( unsigned int &curPortNum )
   IBDataMsg *p_flit;
   
   // how many credits are available for this VL
-  numCredits = FCCL[0] - FCTBS[0];
-  
-  
+  numCredits = FCCL.at(0) - FCTBS.at(0);
   
   // start with the next port to the last one we sent
-  for (unsigned int pn = 1; pn <= numInPorts; pn++) {
+  for (unsigned int pn = 1; pn <= numInPorts; pn++) 
+  {
     portNum = (curPortNum + pn) % numInPorts;
     p_flit = inPktHoqPerVL[portNum][0];
     // do we have anything to send?
@@ -465,27 +494,27 @@ IBVLArb::findNextSendOnVL0( unsigned int &curPortNum )
     
     // we can have another messages leaving at the same time so
     // ignore that port/vl if in the middle of another transfer
-    if (p_flit->getFlitSn()) {
+    if (p_flit->getFlitSn()) 
+    {
       EV << "-I- " << getFullPath() << " ignoring non first packet:"
          << p_flit->getName() << " on port:" << portNum
          << " vl:" << 0 << omnetpp::endl;
       
-    } else {
+    } 
+    else 
+    {
       // so can we send it?
       //CreditsNum.record(numCredits);
-      if(!hcaArb /*&& p_flit->getDstLid() == 1 */ /*&& p_flit->getSrcLid() == 1*/)
-      {
-          //StaticFreeNum.record(numCredits);
-      }
       //StaticFreeNum.record(p_flit->getPacketLength());
-      if (p_flit->getPacketLength() <= numCredits) {
+      if (p_flit->getPacketLength() <= numCredits) 
+      {
         //found = 1;
         found = numCredits;
         break;
-      } else {
+      } 
+      else 
+      {
 
-        
-  
         EV << "-I- " << getFullPath() << " not enough credits available:"
            << numCredits << " < " << p_flit->getPacketLength() 
            << " required for sending:"
@@ -505,51 +534,57 @@ void IBVLArb::displayState()
 {
   // print the state of the arbiter
   //if (omnetpp::cEnvir.disabled() == false) {
-    EV << "-I- " << getFullPath() << " ARBITER STATE as VL/Used/Weight"
-       << omnetpp::endl;
-    EV << "-I- High:";
-    for (unsigned int e = 0; e < maxVL+1; e++) {
-      if (LastSentWasHigh && HighIndex == e)
-        EV << "*" << HighTbl[e].VL << " "
-           << setw(3) << HighTbl[e].used
-           << "/" << setw(3) << HighTbl[e].weight << "*";
-      else
-        EV << "|" << HighTbl[e].VL << " "
-           << setw(3) << HighTbl[e].used
-           << "/" << setw(3) << HighTbl[e].weight << " ";
-    }
-    if (LastSentWasHigh)
-      EV << "<----" << SentHighCounter << omnetpp::endl;
+  EV << "-I- " << getFullPath() << " ARBITER STATE as VL/Used/Weight"
+      << omnetpp::endl;
+  EV << "-I- High:";
+  for (unsigned int e = 0; e < maxVL+1; e++) 
+  {
+    if (LastSentWasHigh && HighIndex == e)
+      EV << "*" << HighTbl[e].VL << " "
+          << setw(3) << HighTbl[e].used
+          << "/" << setw(3) << HighTbl[e].weight << "*";
     else
-      EV << omnetpp::endl;
-    
-    EV << "-I- Low: ";
-    for (unsigned int e = 0; e < maxVL+1; e++) {
-      if (!LastSentWasHigh && LowIndex == e)
-        EV << "*" << LowTbl[e].VL << " "
-           << setw(3) << LowTbl[e].used
-           << "/" << setw(3) << LowTbl[e].weight << "*";
-      else
-        EV << "|" << LowTbl[e].VL << " "
-           << setw(3) << LowTbl[e].used
-           << "/" << setw(3) << LowTbl[e].weight << " ";
-    }
+      EV << "|" << HighTbl[e].VL << " "
+          << setw(3) << HighTbl[e].used
+          << "/" << setw(3) << HighTbl[e].weight << " ";
+  }
+  if (LastSentWasHigh)
+    EV << "<----" << SentHighCounter << omnetpp::endl;
+  else
     EV << omnetpp::endl;
+  
+  EV << "-I- Low: ";
+  for (unsigned int e = 0; e < maxVL+1; e++) {
+    if (!LastSentWasHigh && LowIndex == e)
+      EV << "*" << LowTbl[e].VL << " "
+          << setw(3) << LowTbl[e].used
+          << "/" << setw(3) << LowTbl[e].weight << "*";
+    else
+      EV << "|" << LowTbl[e].VL << " "
+          << setw(3) << LowTbl[e].used
+          << "/" << setw(3) << LowTbl[e].weight << " ";
+  }
+  EV << omnetpp::endl;
   //}
   
   int vlsWithData = 0;
-  for (unsigned int vl = 0; vl < maxVL+1; vl++) {
-    int fctbs = FCTBS[vl];
-    int freeCredits = FCCL[vl] - fctbs;
+  for (unsigned int vl = 0; vl < maxVL+1; vl++) 
+  {
+    int fctbs = FCTBS.at(vl);
+    int freeCredits = FCCL.at(vl) - fctbs;
     EV << "-I- " << getFullPath() << " vl:" << vl
-       << " " << FCCL[vl] << "-" << fctbs << "=" 
+       << " " << FCCL.at(vl) << "-" << fctbs << "=" 
        << freeCredits << " Ports " ;
     int anyInput = 0;
-    for (unsigned int pn = 0; pn < numInPorts ; pn++) {
-      if (inPktHoqPerVL[pn][vl]) {
+    for (unsigned int pn = 0; pn < numInPorts ; pn++) 
+    {
+      if (inPktHoqPerVL[pn][vl]) 
+      {
         anyInput = 1;
         EV << pn << ":Y ";
-      } else {
+      } 
+      else 
+      {
         EV << pn << ":n ";
       }
     }
@@ -557,16 +592,6 @@ void IBVLArb::displayState()
     EV << endl; 
     if (anyInput)
       vlsWithData |= 1<<vl;
-    
-    if (vl == 0)
-    {
-        //vl0Credits.record(freeCredits);
-    }
-    else if (vl == 1)
-    {
-        //vl1Credits.record(freeCredits);
-    }
-
   }
   //readyData.record(10*vlsWithData);
 }
@@ -611,7 +636,8 @@ void IBVLArb::arbitrate()
   unsigned int vl;
   
   // can not arbitrate if we are in a middle of send
-  if (p_popMsg->isScheduled()) {
+  if (p_popMsg->isScheduled()) 
+  {
     EV << "-I- " << getFullPath() 
        << " can not arbitrate while packet is being sent" << endl;
     return;
@@ -621,12 +647,14 @@ void IBVLArb::arbitrate()
   displayState();
 
   // if we did not reach the end of the current packet simply send this credit
-  if (InsidePacket ) {
+  if (InsidePacket ) 
+  {
     vl = LastSentVL;
-    portNum = LastSentPort[vl];
+    portNum = LastSentPort.at(vl);
     
     nextSendHoq = inPktHoqPerVL[portNum][vl];
-    if (! nextSendHoq) { 
+    if (! nextSendHoq) 
+    { 
       EV << "-I- " << getFullPath() << " HoQ empty for port:"
          << portNum << " VL:" << vl << endl;
       return;
@@ -635,40 +663,49 @@ void IBVLArb::arbitrate()
     isLastFlit = 
       (nextSendHoq->getFlitSn() + 1 == nextSendHoq->getPacketLength());
     
-    if (isLastFlit) {
+    if (isLastFlit) 
+    {
       EV << "-I- " << getFullPath() << " sending last credit packet:"
          << nextSendHoq->getName() << " from port:" << portNum
          << " vl:" <<  vl << endl; 
       InsidePacket = 0;
-    } else {
+    } 
+    else 
+    {
       EV << "-I- " << getFullPath() << " sending continuation credit packet:"
          << nextSendHoq->getName() << " from port:" << portNum
          << " vl:" << vl << endl;
     }
     
     // need to decrement the SentHighCounter if we are sending high packets
-    if (LastSentWasHigh) {
+    if (LastSentWasHigh) 
+    {
       SentHighCounter--;
-    } else {
+    } 
+    else 
+    {
       // If we are sending the last credit of packet when the SentHighCounter
       // is zero we need to reload it as this was the last credit of forced low
       // packet
-      if ( isLastFlit && (SentHighCounter == 0))
+      if ( isLastFlit && (!SentHighCounter))
         SentHighCounter = vlHighLimit*4096/64;
     }
-    found = 1;
-    
-  } else {
+    found = 1; 
+  } 
+  else 
+  {
     // not inside a packet so need to arbitrate a new one
     isFirstPacket = 1;
     
     // IF WE ARE HERE WE NEED TO FIND FIRST PACKET TO SEND
-    portNum = LastSentPort[LastSentVL];
+    portNum = LastSentPort.at(LastSentVL);
     vl = LastSentVL;
     
-    if (maxVL > 0) {
+    if (maxVL > 0) 
+    {
       // if we are in High Limit case try first from low
-      if ( SentHighCounter <= 0 ) {
+      if ( SentHighCounter <= 0 ) 
+      {
         found = 1;
         if (findNextSend(LowIndex, LowTbl, portNum, vl))
           LastSentWasHigh = 0;
@@ -676,7 +713,9 @@ void IBVLArb::arbitrate()
           LastSentWasHigh = 1; 
         else
           found = 0;
-      } else { 
+      } 
+      else 
+      { 
         found = 1;
         if ( findNextSend(HighIndex, HighTbl, portNum, vl) )
           LastSentWasHigh = 1; 
@@ -685,7 +724,9 @@ void IBVLArb::arbitrate()
         else
           found = 0;
       }
-    } else {
+    } 
+    else 
+    {
       vl = 0;
       found = findNextSendOnVL0(portNum);
     }
@@ -696,58 +737,58 @@ void IBVLArb::arbitrate()
        //markcount = 1;
     //}
     //StaticFreeNum.record(markcount);
-    if(markcount == markrate)
-    {
-         //markcount = 0;
-    }
     
 
-    if (found) {
       /*markcount = markcount + 1 ;
     if(markcount == 10001)
     {
        markcount = 1;
     }*/
       
-      if (LastSentWasHigh) {
-        EV << "-I- " << getFullPath() << " Result High idx:" 
-           << HighIndex << " vl:" << vl
-           << " port:" << portNum << " used:" << HighTbl[HighIndex].used
-           << " weight:" << HighTbl[HighIndex].weight
-           << " high count:" << SentHighCounter << endl;
-      } else {
-        EV << "-I- " << getFullPath() << " Result Low idx:" 
-           << LowIndex << " vl:" << vl
-           << " port:" << portNum << " used:" << LowTbl[LowIndex].used
-           << " weight:" << LowTbl[LowIndex].weight << endl;
-      }
+    if (LastSentWasHigh) {
+      EV << "-I- " << getFullPath() << " Result High idx:" 
+          << HighIndex << " vl:" << vl
+          << " port:" << portNum << " used:" << HighTbl[HighIndex].used
+          << " weight:" << HighTbl[HighIndex].weight
+          << " high count:" << SentHighCounter << endl;
+    } 
+    else 
+    {
+      EV << "-I- " << getFullPath() << " Result Low idx:" 
+          << LowIndex << " vl:" << vl
+          << " port:" << portNum << " used:" << LowTbl[LowIndex].used
+          << " weight:" << LowTbl[LowIndex].weight << endl;
+    }
       
-      nextSendHoq = inPktHoqPerVL[portNum][vl];
-      isLastFlit = 
-        (nextSendHoq->getFlitSn() + 1 == nextSendHoq->getPacketLength());
+    nextSendHoq = inPktHoqPerVL[portNum][vl];
+    isLastFlit = 
+      (nextSendHoq->getFlitSn() + 1 == nextSendHoq->getPacketLength());
 
+    
+    if (!isLastFlit) 
+    {
+      InsidePacket = 1; 
+      EV << "-I- " << getFullPath() << " sending first credit packet:"
+          << nextSendHoq->getName() << " from port:" << portNum
+          << " vl:" << vl << endl; 
+    } 
+    else 
+    { 
+      InsidePacket = 0;
+      EV << "-I- " << getFullPath() << " sending single credit packet:"
+          << nextSendHoq->getName() << " from port:" << portNum
+          << " vl:" << vl << endl; 
+    }
       
-      if (!isLastFlit) {
-        InsidePacket = 1; 
-        EV << "-I- " << getFullPath() << " sending first credit packet:"
-           << nextSendHoq->getName() << " from port:" << portNum
-           << " vl:" << vl << endl; 
-      } else { 
-        InsidePacket = 0;
-        EV << "-I- " << getFullPath() << " sending single credit packet:"
-           << nextSendHoq->getName() << " from port:" << portNum
-           << " vl:" << vl << endl; 
-      }
-      
-      //StaticFreeNum.record(nextSendHoq->getIsFECN()); 
-      if(nextSendHoq!= NULL /*&& nextSendHoq->getIsFECN() == 2*/)
-      {
-        //StaticFreeNum.record(nextSendHoq->getIsFECN());
-      }
-      if(nextSendHoq!= NULL && nextSendHoq->getIsFECN() == 1)
-      {
-        //StaticFreeNum.record(nextSendHoq->getSrcLid());
-      }
+    //StaticFreeNum.record(nextSendHoq->getIsFECN()); 
+    if(nextSendHoq!= NULL /*&& nextSendHoq->getIsFECN() == 2*/)
+    {
+      //StaticFreeNum.record(nextSendHoq->getIsFECN());
+    }
+    if(nextSendHoq!= NULL && nextSendHoq->getIsFECN() == 1)
+    {
+      //StaticFreeNum.record(nextSendHoq->getSrcLid());
+    }
       
       /*if( nextSendHoq!= NULL && nextSendHoq->getIsFECN() == 2 && markrate && (markcount % markrate == 0))
       {
@@ -764,8 +805,8 @@ void IBVLArb::arbitrate()
       }
 
       markcount = markcount + 1 ;*/
-      
-    } else {
+    else 
+    {
       EV << "-I- " << getFullPath() << " nothing to send" <<endl;
       //arbDecision.record(-1);
       // not enougn credit;
@@ -778,50 +819,45 @@ void IBVLArb::arbitrate()
       //markcount = markcount + 1 ;
       return;
     }
-
   } // first or not
   
   // we could arbitrate an invalid selection due to lack of output Q
   // or busy ports of the input port we want to arbitrate.
   if(markcount == markrate)
-    {
-         markcount = 0;
-    }
-  if (isValidArbitration(portNum, vl, isFirstPacket, 
-                         nextSendHoq->getPacketLength())) {
-
-    
+  {
+    markcount = 0;
+  }
+  if (isValidArbitration(portNum, vl, isFirstPacket, nextSendHoq->getPacketLength())) 
+  {
     if(nextSendHoq->getFlitSn() == 0 && FullCredit == 1)
     {
-        
-        
-        if( nextSendHoq!= NULL && nextSendHoq->getIsFECN() == 2 /*&& NewCreditsNum >= 32 */&& markrate && (markcount % markrate == 0))
-        {
-          nextSendHoq->setIsFECN(1);
-          //if(nextSendHoq->getSrcLid() <= 2)
-          //{
-          //StaticFreeNum.record(nextSendHoq->getSrcLid()); 
-          //}
-          //markcount = markcount + 1 ;
-                            
-        }
+      if( nextSendHoq!= NULL && nextSendHoq->getIsFECN() == 2 /*&& NewCreditsNum >= 32 */&& markrate && (markcount % markrate == 0))
+      {
+        nextSendHoq->setIsFECN(1);
+        //if(nextSendHoq->getSrcLid() <= 2)
+        //{
+        //StaticFreeNum.record(nextSendHoq->getSrcLid()); 
+        //}
+        //markcount = markcount + 1 ;
+                          
+      }
         //else if( nextSendHoq!= NULL && nextSendHoq->getIsFECN() == 2 && NewCreditsNum < 32 && markrate && (markcount % markrate == 0))
         //{
           //nextSendHoq->setIsFECN(0);
                          
         //}
-        else if( nextSendHoq!= NULL && nextSendHoq->getIsFECN() == 2 && markrate && (markcount % markrate != 0))
-        {
-          nextSendHoq->setIsFECN(0);
-          //markcount = markcount + 1 ;
-        }
-        else if( nextSendHoq!= NULL && nextSendHoq->getIsFECN() == 2 && !markrate)
-        {
-          nextSendHoq->setIsFECN(1);
-          //StaticFreeNum.record(nextSendHoq->getSrcLid());
-          //markcount = markcount + 1 ;        
-        }      
-        markcount = markcount + 1 ;
+      else if( nextSendHoq!= NULL && nextSendHoq->getIsFECN() == 2 && markrate && (markcount % markrate != 0))
+      {
+        nextSendHoq->setIsFECN(0);
+        //markcount = markcount + 1 ;
+      }
+      else if( nextSendHoq!= NULL && nextSendHoq->getIsFECN() == 2 && !markrate)
+      {
+        nextSendHoq->setIsFECN(1);
+        //StaticFreeNum.record(nextSendHoq->getSrcLid());
+        //markcount = markcount + 1 ;        
+      }      
+      markcount = markcount + 1 ;
         //}
         //else
         //{
@@ -831,21 +867,18 @@ void IBVLArb::arbitrate()
           //}
         //}
     }
-    if(nextSendHoq->getFlitSn() == 0 && FullCredit == 0 )
+    if(nextSendHoq->getFlitSn() == 0 && !FullCredit)
     {
-        if( nextSendHoq!= NULL && nextSendHoq->getIsFECN() == 2)
-        {
-          nextSendHoq->setIsFECN(0);                
-        }
+      if( nextSendHoq!= NULL && nextSendHoq->getIsFECN() == 2)
+      {
+        nextSendHoq->setIsFECN(0);                
+      }
     }
-
-
-
-
     // do the actual send and record our successful arbitration
-    if (nextSendHoq->getFlitSn() == 0) {
+    if (nextSendHoq->getFlitSn() == 0) 
+    {
       LastSentVL = vl;
-      LastSentPort[vl] = portNum;
+      LastSentPort.at(vl) = portNum;
     }
     
     inPktHoqPerVL[LastSentPort[LastSentVL]][LastSentVL] = NULL;
@@ -858,14 +891,11 @@ void IBVLArb::arbitrate()
     //arbDecision.record(10*(vl+1));
     sendOutMessage(nextSendHoq);
     sendSentMessage(LastSentPort[LastSentVL],LastSentVL);
-  } else {
-
+  } 
+  else 
+  {
     // if we are in the first data credit cleanup the InsidePacket flag
     //StaticFreeNum.record(nextSendHoq->getIsFECN());
-    if(!hcaArb && nextSendHoq->getIsFECN() == 1)
-    {
-      //nextSendHoq->setIsFECN(2);
-    }
     if (nextSendHoq->getFlitSn() == 0)
       InsidePacket = 0;
     //arbDecision.record(-1);
@@ -882,22 +912,26 @@ void IBVLArb::handlePush(IBDataMsg *p_msg)
   // what port did we get it from ?
   unsigned int pn = p_msg->getArrivalGate()->getIndex();
   unsigned short int vl = p_msg->getVL();
-  if ((pn < 0) || (pn >= numInPorts) ) {
+  if ((pn < 0) || (pn >= numInPorts) ) 
+  {
     error("-E- %s got out of range port num: %d",
               getFullPath().c_str(), pn);
   }
 
-  if (vl >= maxVL+1) {
+  if (vl >= maxVL+1) 
+  {
     error("-E- %s VLA got out of range vl: %d by %s, arrived at port %d",
               getFullPath().c_str(), vl, p_msg->getName(), pn); 
   }
   
-  if (inPktHoqPerVL[pn][vl] != NULL) {
+  if (inPktHoqPerVL[pn][vl] != NULL) 
+  {
     error("-E- %s Overwriting HoQ port: %d by %s arrived at port: %d",
               getFullPath().c_str(), pn, p_msg->getName(), pn);
   }
   
-  if (hoqFreeProvided[pn][vl] == 0) {
+  if (hoqFreeProvided[pn][vl] == 0) 
+  {
     error("-E- %s No previous HoQ free port: %d VL: %d by %s at port: %d",
               getFullPath().c_str(), pn, vl, p_msg->getName(), pn);
   }
@@ -926,14 +960,14 @@ void IBVLArb::handleTxCred(IBTxCredMsg *p_msg)
 {
   int vl = p_msg->getVL();
   // update FCCL...
-  FCCL[vl] = p_msg->getFCCL();
+  FCCL.at(vl) = p_msg->getFCCL();
   
   EV << "-I- " << getFullPath() << " updated vl:" << vl
      << " fccl:" << p_msg->getFCCL()
      << " can send :" << FCCL[vl] - FCTBS[vl] << endl;
   //CreditsNum.record(FCCL[vl] - FCTBS[vl]);
   //StaticFreeNum.record(FCCL[vl] - FCTBS[vl]);
-  if(FCCL[vl] - FCTBS[vl] < 42)
+  if(FCCL.at(vl) - FCTBS.at(vl) < 42)
   {
     //FullCredit = 0;
   }
@@ -947,20 +981,15 @@ void IBVLArb::handleTxCred(IBTxCredMsg *p_msg)
 
 void IBVLArb::handleMessage(omnetpp::cMessage *p_msg)
 {
-  int msgType = p_msg->getKind();
-  if ( msgType == IB_POP_MSG ) {
-    handlePop();
-  } else if ( msgType == IB_DATA_MSG ) {
-    handlePush((IBDataMsg*)p_msg);
-  } else if ( msgType == IB_TXCRED_MSG ) {
-    handleTxCred((IBTxCredMsg*)p_msg);
-  } else if ( (msgType == IB_DONE_MSG) || (msgType == IB_FREE_MSG) ) {
-    delete p_msg;
-    arbitrate();
-  } else {
-    error("-E- %s does not know how to handle message: %d",
-              getFullPath().c_str(), msgType);
-    delete p_msg;
+  switch (p_msg->getKind())
+  {
+    case 1  : handlePush((IBDataMsg*)p_msg); break; //in the case of IB_DATA_MSG
+    case 4  : handleTxCred((IBTxCredMsg*)p_msg); break; //in the case of IB_TXCRED_MSG
+    case 7  : handlePop(); break; //in the case of IB_POP_MSG
+    case 9  : delete p_msg; arbitrate(); break; //in the case of IB_FREE_MSG
+    case 10 : delete p_msg; arbitrate(); break; //in the case of IB_DONE_MSG
+    default : error("-E- %s does not know how to handle message: %d", getFullPath().c_str(), p_msg->getKind());
+              delete p_msg;
   }
 }
 
@@ -975,7 +1004,8 @@ void IBVLArb::finish()
   //recordScalar("sent_BECN_vlarb",sent_BECN);
 }
 
-IBVLArb::~IBVLArb() {
+IBVLArb::~IBVLArb() 
+{
 	if (p_popMsg) cancelAndDelete(p_popMsg);
 
   for (unsigned int pn = 0; pn < numInPorts; pn++)
@@ -986,14 +1016,22 @@ IBVLArb::~IBVLArb() {
       {
         if(inPktHoqPerVL[pn][j])
         {
-          //delete inPktHoqPerVL[pn][j];
+          delete inPktHoqPerVL[pn][j];
         }
       }
-      //delete inPktHoqPerVL[pn];
+      delete inPktHoqPerVL[pn];
+    }
+    if(hoqFreeProvided[pn])
+    {
+      delete hoqFreeProvided[pn];
     }
   }
   if(inPktHoqPerVL)
   {
-    //delete inPktHoqPerVL;
+    delete inPktHoqPerVL;
+  }
+  if(hoqFreeProvided)
+  {
+    delete hoqFreeProvided;
   }
 }

@@ -20,7 +20,7 @@ void IBRingAllreduceApp::initialize()
     // use self message to start 
     if (num_workers_ != 0)
     {
-        data_[(2 * num_workers_ + rank_ - 2) % num_workers_] = 1;
+        data_.at((2 * num_workers_ + rank_ - 2) % num_workers_) = 1;
         scheduleAt(simTime() + SimTime(10, SIMTIME_NS), new cMessage);
     }
 }
@@ -64,7 +64,7 @@ void IBRingAllreduceApp::handleMessage(cMessage* msg)
 
         ++recv_counter_;
         IBDoneMsg* d_msg = reinterpret_cast<IBDoneMsg*>(msg);
-        ++data_[d_msg->getAppIdx()];
+        ++data_.at(d_msg->getAppIdx());
         trySendNext();
 
         if (recv_counter_ >= 2 * num_workers_ - 1)
@@ -113,12 +113,12 @@ void IBRingAllreduceApp::trySendNext()
         return;
     if (counter_ <= num_workers_ - 1)
     {
-        if (data_[idx] >= 1)
+        if (data_.at(idx) >= 1)
             goto send;
     }
     else 
     {
-        if (data_[idx] == 2)
+        if (data_.at(idx) == 2)
             goto send;
     }
     return;
