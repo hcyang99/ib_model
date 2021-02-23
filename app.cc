@@ -96,6 +96,7 @@ void IBApp::initialize()
     vecFiles   *vecMgr = vecFiles::get();
     dstSeq = vecMgr->getIntVec(dstSeqVecFile, dstSeqVecIdx);
     EV << "-I- Defined DST sequence of " << dstSeq->size() << " LIDs" << endl;
+    delete vecMgr;
   }
   
   // Message Length Modes

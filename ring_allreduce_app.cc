@@ -59,9 +59,6 @@ void IBRingAllreduceApp::handleMessage(cMessage* msg)
         //         std::cout << "-I- " << getFullPath() << " received data: " << _cnt << std::endl;
         //     }
         // }
-                
-    
-
         ++recv_counter_;
         IBDoneMsg* d_msg = reinterpret_cast<IBDoneMsg*>(msg);
         ++data_.at(d_msg->getAppIdx());

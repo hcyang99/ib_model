@@ -31,9 +31,7 @@ void IBOutBuf::initialize()
   // read parameters
   qSize = par("size");
   maxVL = par("maxVL");
-
   Enabled = par("enabled");
-
   credMinTime_us = par("credMinTime");
 
   // Initiazlize the statistical collection elements
@@ -44,7 +42,6 @@ void IBOutBuf::initialize()
   flowControlDelay.setName("Time between VL0 FC");
   flowControlDelay.setRangeAutoUpper(0,10,1.2);
   qDepth.setName("Queue Depth");
-
 
   totalBytesSent = 0;
   firstPktSendTime = 0;
@@ -98,7 +95,8 @@ void IBOutBuf::initialize()
 } // initialize
 
 // places a new allocated IBTQLoadUpdateMsg on the buffer
-void IBOutBuf::sendOrQueuePortLoadUpdateMsg(unsigned int rank, unsigned int firstLid, unsigned int lastLid, int load) {
+void IBOutBuf::sendOrQueuePortLoadUpdateMsg(unsigned int rank, unsigned int firstLid, unsigned int lastLid, int load)
+{
 	Enter_Method("sendOrQueuePortLoadUpdateMsg lid-range:[%d,%d] load:%d",
 			firstLid, lastLid, load);
 
@@ -111,14 +109,15 @@ void IBOutBuf::sendOrQueuePortLoadUpdateMsg(unsigned int rank, unsigned int firs
 	p_msg->setByteLength(8);
 
 	// if there is no other message on the wire sneak out
-	if ( ! p_popMsg->isScheduled() ) 
+	if (!p_popMsg->isScheduled()) 
   {
 		sendOutMessage(p_msg);
-	} else 
+	} 
+  else 
   {
-    EV << "-I- " << getFullPath() << " queued port-load msg. mgtQ depth " << mgtQ.length() << omnetpp::endl;
+    EV << "-I- " << getFullPath() << " queued port-load msg. mgtQ depth " << mgtQ.getLength() << omnetpp::endl;
     mgtQ.insert(p_msg);
-}
+  }
 }
 
 // send the message out
@@ -154,7 +153,7 @@ void IBOutBuf::sendOutMessage(IBWireMsg *p_msg)
   }
   send(p_msg, "out");
 
-  if (p_popMsg &&  ! p_popMsg->isScheduled() ) 
+  if (p_popMsg && !p_popMsg->isScheduled()) 
   {
     scheduleAt(gate("out")->getTransmissionChannel()->getTransmissionFinishTime(), p_popMsg);
   }
@@ -166,7 +165,8 @@ void IBOutBuf::sendOutMessage(IBWireMsg *p_msg)
     //{
     if (!timerMsg->isScheduled() && on_throughput_obuf > 0) 
     {
-            //omnetpp::simtime_t delay = genDlyPerByte_ns*1e-9*flitSize_B;
+      
+      //omnetpp::simtime_t delay = genDlyPerByte_ns*1e-9*flitSize_B;
       omnetpp::simtime_t delay = timeStep_us*1e-6;
       scheduleAt(omnetpp::simTime()+delay, timerMsg);
     }
@@ -190,14 +190,14 @@ void IBOutBuf::qMessage(IBDataMsg *p_msg)
   
   if ( p_popMsg && p_popMsg->isScheduled() ) 
   {
-    if ( qSize <= queue.length() ) 
+    if ( qSize <= queue.getLength() ) 
     {
       error("-E- %s  need to insert into a full Q. qSize:%d qLength:%d",
-              getFullPath().c_str(), qSize, queue.length());
+              getFullPath().c_str(), qSize, queue.getLength());
     }
     
     EV << "-I- " << getFullPath() << " queued data msg:" << p_msg->getName()
-       << " Qdepth " << queue.length() << omnetpp::endl;
+       << " Qdepth " << queue.getLength() << omnetpp::endl;
 
     queue.insert(p_msg);
     //qDepth.record(queue.length());
@@ -235,7 +235,7 @@ int IBOutBuf::sendFlowControl()
   int sentUpdate = 0;
 
   // we should not continue if the Q is not empty if we aren't in mintime mode
-  if (! isMinTimeUpdate && ! queue.empty())
+  if (! isMinTimeUpdate && ! queue.isEmpty())
     return(0);
 
   if (curFlowCtrVL >= maxVL+1) 
@@ -280,7 +280,7 @@ int IBOutBuf::sendFlowControl()
     }
 
     // send management message if no FC sent
-    if (!sentUpdate && !mgtQ.empty()) 
+    if (!sentUpdate && !mgtQ.isEmpty()) 
     {
     	IBWireMsg *p_msg = (IBWireMsg*)mgtQ.pop();
     	EV << "-I- " << getFullPath() << " popped mgt message:"  << p_msg->getName() << omnetpp::endl;
@@ -289,7 +289,7 @@ int IBOutBuf::sendFlowControl()
     }
 
     // last VL zeros the min time update flag only if there are no mgt messages
-    if ( (curFlowCtrVL == maxVL+1) && mgtQ.empty())
+    if ( (curFlowCtrVL == maxVL+1) && mgtQ.isEmpty())
       isMinTimeUpdate = 0;
   }
   return(sentUpdate);
@@ -315,7 +315,7 @@ void IBOutBuf::handlePop()
   }
 
   // first send mgt msg then try sending a flow control if required:
-  if (!mgtQ.empty()) 
+  if (!mgtQ.isEmpty()) 
   {
 	  IBWireMsg *p_msg = (IBWireMsg*)mgtQ.pop();
 	  EV << "-I- " << getFullPath() << " first pop mgt message:"  << p_msg->getName() << omnetpp::endl;
@@ -334,7 +334,7 @@ void IBOutBuf::handlePop()
   }
 
   // got to pop from the queue if anything there
-  if ( !queue.empty() ) 
+  if ( !queue.isEmpty() ) 
   {
     IBWireMsg *p_msg = (IBWireMsg *)queue.pop();
     if ( p_msg->getKind() == IB_DATA_MSG ) 
@@ -383,14 +383,13 @@ void IBOutBuf::handleMinTime()
   curFlowCtrVL = 0;
   isMinTimeUpdate = 1;
   // if we do not have any pop message - we need to create one immediatly
-  if (p_popMsg && ! p_popMsg->isScheduled() ) 
+  if (p_popMsg && !p_popMsg->isScheduled() ) 
   {
     scheduleAt(omnetpp::simTime() + 1e-9, p_popMsg);
   }
   
   // we use the min time to collect Queue depth stats:
   //qDepthHist.collect( queue.length() );
-
   scheduleAt(omnetpp::simTime() + credMinTime_us*1e-6, p_minTimeMsg);
 } // handleMinTime
   
@@ -424,7 +423,7 @@ void IBOutBuf::handleMessage(omnetpp::cMessage *p_msg)
   switch (p_msg->getKind())
   {
     case 1  : qMessage((IBDataMsg*)p_msg); break; // in the case of IB_DATA_MSG
-    case 5  : handleRxCred((IBRxCredMsg*)p_msg); // in the case of IB_RXCRED_MSG
+    case 5  : handleRxCred((IBRxCredMsg*)p_msg); break;// in the case of IB_RXCRED_MSG
     case 6  : handleMinTime(); break; // in the case of IB_MINTIME_MSG
     case 7  : handlePop(); break; // in the case of IB_POP_MSG
     case 14 : handleTimer(p_msg); break; // in the case of IB_TIMER_MSG
@@ -464,4 +463,16 @@ IBOutBuf::~IBOutBuf()
   if (p_popMsg) cancelAndDelete(p_popMsg);
   if (timerMsg) cancelAndDelete(timerMsg);
   if (p_minTimeMsg) cancelAndDelete(p_minTimeMsg);
+  while (!mgtQ.isEmpty())
+  {
+    IBTQLoadUpdateMsg *p_msg = (IBTQLoadUpdateMsg *)mgtQ.pop();
+    delete p_msg;
+  }
+  mgtQ.clear();
+  while (!queue.isEmpty())
+  {
+    IBDataMsg *p_msg = (IBDataMsg *)queue.pop();
+    delete p_msg;
+  }
+  queue.clear();
 }

@@ -104,5 +104,7 @@ void Pktfwd::finish()
 {
 }
 
-Pktfwd::~Pktfwd() {
+Pktfwd::~Pktfwd() 
+{
+	delete FDB;
 }

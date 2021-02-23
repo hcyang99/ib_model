@@ -210,7 +210,7 @@ void IBInBuf::sendTxCred(int vl, long FCCL)
 // Try to send the HoQ to the VLA
 void IBInBuf::updateVLAHoQ(short int portNum, short vl)
 {
-  if (Q[portNum][vl].empty()) return;
+  if (Q[portNum][vl].isEmpty()) return;
   
   // find the VLA connected to the given port and
   // call its method for checking and setting HoQ
@@ -636,13 +636,20 @@ IBInBuf::~IBInBuf()
   {
     if(Q[pn]!= NULL)
     {
-      //std::cout<<Q[pn]->length();
-      //Q[pn]->clear();
-      //delete Q[pn];
+      for (unsigned int i =0; i<maxVL+1 ; i++ ) 
+      {
+        while (!Q[pn][i].isEmpty())
+          {
+            IBDataMsg *p_msg = (IBDataMsg *)Q[pn][i].pop();
+            if (p_msg!=NULL)
+              delete p_msg;
+          }
+      }
+      Q[pn]->clear();
     }
   }
-  if (Q)
+  if (Q != NULL)
   {
-    //Q->clear();
+    delete [] Q;
   }
 }

@@ -295,7 +295,7 @@ void IBGenerator::getNextAppMsg()
 	  if (lastPktSnPerDst.find(p_msg->getDstLid()) == lastPktSnPerDst.end()) 
     {
 		  dstPktSn = 1;
-		  lastPktSnPerDst.at(p_msg->getDstLid()) = dstPktSn;
+		  lastPktSnPerDst.insert({p_msg->getDstLid(), dstPktSn});
 	  } 
     else 
     {
@@ -831,4 +831,13 @@ IBGenerator::~IBGenerator()
     }
   }
   appMsgs.clear();
+  for (unsigned int i =0; i<8 ; i++)
+  {
+    while(!VLQ.at(i).isEmpty())
+    {
+      IBDataMsg *p_msg = (IBDataMsg *)VLQ.at(i).pop();
+      delete p_msg;
+    }
+    VLQ.at(i).clear();
+  }
 }

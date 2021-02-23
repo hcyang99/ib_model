@@ -163,6 +163,7 @@ void IBSink::consumeDataMsg(IBDataMsg *p_msg)
     send(d_msg, "out");
   }
   send(p_sentMsg, "sent");
+  delete p_msg;
 }
 
 void IBSink::handleData(IBDataMsg *p_msg)
@@ -244,7 +245,7 @@ void IBSink::handleData(IBDataMsg *p_msg)
 	  } 
     else 
     {
-		  lastPktSnPerSrc.at(p_msg->getSrcLid()) = p_msg->getPacketSn();
+		  lastPktSnPerSrc.insert({p_msg->getSrcLid(), p_msg->getPacketSn()});
 		  totIOPackets++;
 	  }
   }
@@ -264,7 +265,7 @@ void IBSink::handleData(IBDataMsg *p_msg)
     {
 		  EV << "-I- " << getFullPath() << " received first flit of new message from src: "
 			   <<  p_msg->getSrcLid() << " app:" << p_msg->getAppIdx() << " msg: " << p_msg->getMsgIdx() << omnetpp::endl;
-		  outstandingMsgsData.at(mt).firstFlitTime = p_msg->getInjectionTime();
+		  outstandingMsgsData[mt].firstFlitTime = p_msg->getInjectionTime();
 	  }
 
 	  // first flit of the last packet
@@ -504,7 +505,7 @@ void IBSink::handleHiccup(omnetpp::cMessage *p_msg) //parameter passed not used?
     EV << "-I- " << getFullPath() << " Hiccup OFF for:" 
        << delay_us << "usec" << omnetpp::endl;
     // as we are out of hiccup make sure we have at least one outstanding drain
-    if (! p_drainMsg->isScheduled())
+    if (!p_drainMsg->isScheduled())
       newDrainMessage(1e-3); // 1ns
   } 
   else 
@@ -600,6 +601,7 @@ void IBSink::handleSinkTimer(IBSinkTimerMsg *p_msg)
   omnetpp::simtime_t delay = timeStep_us*1e-6;
   Recv_throughput = 0;
   scheduleAt(omnetpp::simTime()+delay, sinktimerMsg.at(p_msg->getSrcLid()));
+  delete p_msg;
 }
 
 
@@ -652,16 +654,17 @@ IBSink::~IBSink()
   //{
   for(int i= 0; i < 65; i++)
   {
-    if(sinktimerMsg.at(i))
+    if(sinktimerMsg.at(i) != NULL)
     {
       delete sinktimerMsg.at(i);
     }
   }
+  
   //}
   while (!queue.isEmpty()) 
   {
     IBDataMsg *p_dataMsg = (IBDataMsg *)queue.pop();
-    if (p_dataMsg)
+    if (p_dataMsg!=NULL)
       delete p_dataMsg;
   }
 }
