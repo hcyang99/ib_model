@@ -43,6 +43,7 @@ Define_Module(IBGenerator);
 // main init of the module
 void IBGenerator::initialize() 
 {
+
   cct_index.setName("CCT_Index");
   throughput.setName("Throughput");
   BECN_msgIdx.setName("BECN_msgIdx");
@@ -65,6 +66,7 @@ void IBGenerator::initialize()
   startTime_s = par("startTime");
   endTime_s = par("endTime");
 
+  
   // we start with pkt 0
   pktId = 0;
   msgIdx = 0;
@@ -72,12 +74,11 @@ void IBGenerator::initialize()
   // init the vector of incoming messages
   numApps = gateSize("in");
   appMsgs.resize(numApps, NULL);
-  VLQ.resize(8,NULL); // initialize the size of VLQ vector
+  VLQ.resize(8,NULL);
   curApp = 0;
   numContPkts = 0;
   maxContPkts = par("maxContPkts");
   maxQueuedPerVL = par("maxQueuedPerVL");
-
   pushMsg = new omnetpp::cMessage("push1", IB_PUSH_MSG);
   timerMsg = new omnetpp::cMessage("timeout", IB_TIMER_MSG);
   cctimerMsg = new omnetpp::cMessage("cctimeout", IB_CCTIMER_MSG);
@@ -95,21 +96,15 @@ void IBGenerator::initialize()
   last_BECNValue = 0;
   last_BECNValue_count = 0;
   
+  
   increaseStep_us = par("CCT_Timer");
   constexpr int LID_MAX = 1024;
   Last_BECN.resize(LID_MAX, 0);
   send_interval_ns = 1638.4 * 1.25 / 4;
   send_interval_ns_last = send_interval_ns;
-  //send_interval_ns = genDlyPerByte_ns*flitSize_B;
-  //if(srcLid == 1 || srcLid == 2)
-  //{
-  //send_interval_ns = 1638 / 2;
-  //}
-  //else
-  //{
-  //send_interval_ns = 1638;
-  //}
 
+  
+  
   if (!timerMsg->isScheduled() && on_throughput_gen > 0) 
   {
     //omnetpp::simtime_t delay = genDlyPerByte_ns*1e-9*flitSize_B;
@@ -118,8 +113,10 @@ void IBGenerator::initialize()
   }
   target = 40.0 * 0.8;
   fd = NULL;
-  //char index[20]; variable declared not used
+  output = "throughput";
+  char index[20];
   output = "throughput" + std::to_string(srcLid) + ".txt";
+
   LastPktSendTime = 0;
   // no need for self start
 }
@@ -137,7 +134,8 @@ void IBGenerator::incrementApp(int appidx)
     if (++thisPktIdx == p_msg->getLenPkts()) 
     {
       // we are done with the app msg
-      EV << "-I- " << getFullPath() << " completed appMsg:" << p_msg->getName() << omnetpp::endl;
+      EV << "-I- " << getFullPath() << " completed appMsg:" 
+         << p_msg->getName() << omnetpp::endl;
       // if (p_msg->getDstLid() == 307)
       // {
       //   std::cout << "Sent to H[306]" << " completed appMsg:" 
@@ -168,6 +166,7 @@ void IBGenerator::initPacketParams(IBAppMsg *p_msg, unsigned int pktIdx)
     error("try initPacketParams with index %d > lenPkts %d",
     pktIdx, p_msg->getLenPkts());
   }
+
   // zero the FLIT index
   p_msg->setFlitIdx(0);
   p_msg->setPktIdx(pktIdx);
@@ -176,8 +175,17 @@ void IBGenerator::initPacketParams(IBAppMsg *p_msg, unsigned int pktIdx)
   unsigned int pktLen_B;
   unsigned int pktLen_F;
   // length of last msg packet may be smaller
-  pktLen_B = p_msg->getPktIdx() >= p_msg->getLenPkts()? p_msg->getLenBytes() % p_msg->getMtuBytes() : p_msg->getMtuBytes();
-  pktLen_B = !pktLen_B? p_msg->getMtuBytes() : pktLen_B;
+  if (p_msg->getPktIdx() >= p_msg->getLenPkts()) 
+  {
+    // last packet
+    pktLen_B = p_msg->getLenBytes() % p_msg->getMtuBytes();
+    if (pktLen_B == 0) 
+      pktLen_B = p_msg->getMtuBytes();
+  } 
+  else 
+  {
+    pktLen_B = p_msg->getMtuBytes();
+  }
   pktLen_F = (pktLen_B + flitSize_B - 1) / flitSize_B;
   p_msg->setPktLenBytes(pktLen_F*flitSize_B);
   p_msg->setPktLenFlits(pktLen_F);
@@ -191,11 +199,13 @@ int IBGenerator::isRemoteHoQFree(int vl)
   // call its method for checking and setting HoQ
   omnetpp::cGate *p_gate = gate("out")->getPathEndGate();
   IBVLArb *p_vla = dynamic_cast<IBVLArb *>(p_gate->getOwnerModule());
-  if (p_vla == NULL || strcmp(p_vla->getName(), "vlarb")) 
+  if ((p_vla == NULL) || strcmp(p_vla->getName(), "vlarb")) 
   {
     error("cannot get VLA for generator out port");
   }
-  return(p_vla->isHoQFree((int)p_gate->getIndex(), vl));
+  
+  int remotePortNum = p_gate->getIndex();
+  return(p_vla->isHoQFree(remotePortNum, vl));
 }
 
 unsigned int IBGenerator::vlBySQ(unsigned sq) 
@@ -213,40 +223,43 @@ bool IBGenerator::arbitrateApps()
   if (appMsgs.at(curApp)) 
   {
     unsigned vl = vlBySQ(appMsgs.at(curApp)->getSQ());
-    if ((numContPkts < maxContPkts) && ((unsigned)VLQ.at(vl).getLength() < maxQueuedPerVL)) 
+    if ((numContPkts < maxContPkts) && 
+        ((unsigned)VLQ.at(vl).getLength() < maxQueuedPerVL))
     {
       EV << "-I-" << getFullPath() << " arbitrate apps continue" << omnetpp::endl;
       return true;
     }
   }
+
   unsigned int oldApp = curApp;
   bool found = false;
   // search through all apps return to current 
   for (unsigned i = 1; !found && (i <= numApps); i++) 
   {
-    unsigned int app_no = (curApp + i) % numApps;
-    EV << "-I-" << getFullPath() << " trying app: " << app_no << omnetpp::endl;
-    if (appMsgs.at(app_no)) 
+    unsigned int a = (curApp + i) % numApps;
+    EV << "-I-" << getFullPath() << " trying app: " << a << omnetpp::endl;
+    if (appMsgs.at(a)) 
     {
-      unsigned vl = vlBySQ(appMsgs.at(app_no)->getSQ());
+      unsigned vl = vlBySQ(appMsgs.at(a)->getSQ());
       if ((unsigned)VLQ.at(vl).getLength() < maxQueuedPerVL) 
       {
-        curApp = app_no;
+        curApp = a;
         EV << "-I-" << getFullPath() << " arbitrate apps selected:" 
-           << app_no << omnetpp::endl;
+           << a << omnetpp::endl;
         found = true;
       } 
       else 
       {
-        EV << "-I-" << getFullPath() << " skipping app:" << app_no
+        EV << "-I-" << getFullPath() << " skipping app:" << a
            << " since VLQ[" << vl << "] is full" << omnetpp::endl;
       }
     }
   }
-  numContPkts = oldApp != curApp ? 0 : ++numContPkts;
+  numContPkts = oldApp != curApp? 0: ++numContPkts;
+
   if (!found) 
   {
-    EV << "-I-" << getFullPath() << " arbitrate apps found no app" << omnetpp::endl;
+      EV << "-I-" << getFullPath() << " arbitrate apps found no app" << omnetpp::endl;
   }
   return found;
 }
@@ -257,28 +270,37 @@ bool IBGenerator::arbitrateApps()
 // its app
 void IBGenerator::getNextAppMsg()
 {
-  // IN THE MSG CONECT WE ALWAYS STORE NEXT (TO BE SENT) FLIT AND PKT INDEX
-  // incremeant flit idx:
-  // now make the new FLIT:
   IBAppMsg *p_msg = appMsgs.at(curApp);
+
+  // IN THE MSG CONECT WE ALWAYS STORE NEXT (TO BE SENT) FLIT AND PKT INDEX
+
+  // incremeant flit idx:
+  unsigned int thisFlitIdx = p_msg->getFlitIdx();
+  unsigned int thisPktIdx = p_msg->getPktIdx();
+  unsigned int thisMsgIdx = p_msg->getMsgIdx();
+  unsigned int thisMsgLen = p_msg->getLenPkts();
+  unsigned int thisAppIdx = p_msg->getAppIdx();
+  unsigned int thisPktDst = p_msg->getDstLid();
+
+  // now make the new FLIT:
   IBDataMsg *p_cred;
   char name[128];
-  sprintf(name, "data-%d-%d-%d-%d", srcLid, msgIdx, p_msg->getPktIdx(), p_msg->getFlitIdx());
+  sprintf(name, "data-%d-%d-%d-%d", srcLid, msgIdx, thisPktIdx, thisFlitIdx);
   p_cred = new IBDataMsg(name, IB_DATA_MSG);
   p_cred->setSrcLid(srcLid);
   p_cred->setBitLength(flitSize_B*8);
   p_cred->setByteLength(flitSize_B);
 
-  p_cred->setDstLid(p_msg->getDstLid());
+  p_cred->setDstLid(thisPktDst);
   p_cred->setSL(p_msg->getSQ());
   p_cred->setVL(p_msg->getVL());
 
-  p_cred->setFlitSn(p_msg->getFlitIdx());
-  p_cred->setPacketId(p_msg->getPktIdx());
-  p_cred->setMsgIdx(p_msg->getMsgIdx());
-  p_cred->setAppIdx(p_msg->getAppIdx());
-  p_cred->setPktIdx(p_msg->getPktIdx());
-  p_cred->setMsgLen(p_msg->getLenPkts());
+  p_cred->setFlitSn(thisFlitIdx);
+  p_cred->setPacketId(thisPktIdx);
+  p_cred->setMsgIdx(thisMsgIdx);
+  p_cred->setAppIdx(thisAppIdx);
+  p_cred->setPktIdx(thisPktIdx);
+  p_cred->setMsgLen(thisMsgLen);
   p_cred->setPacketLength(p_msg->getPktLenFlits());
   p_cred->setPacketLengthBytes(p_msg->getPktLenBytes());
 
@@ -289,22 +311,20 @@ void IBGenerator::getNextAppMsg()
   p_cred->setIsAppMsg(1);
 
   // provide serial number to packet head flits
-  if (!p_msg->getFlitIdx()) 
+  if (thisFlitIdx == 0) 
   {
 	  unsigned int dstPktSn = 0;
-	  if (lastPktSnPerDst.find(p_msg->getDstLid()) == lastPktSnPerDst.end()) 
+	  if (lastPktSnPerDst.find(thisPktDst) == lastPktSnPerDst.end()) 
     {
 		  dstPktSn = 1;
-		  lastPktSnPerDst.insert({p_msg->getDstLid(), dstPktSn});
+		  lastPktSnPerDst.insert({thisPktDst,dstPktSn});
 	  } 
     else 
     {
-		  dstPktSn = ++lastPktSnPerDst.at(p_msg->getDstLid());
+		  dstPktSn = ++lastPktSnPerDst.at(thisPktDst);
 	  }
 	  p_cred->setPacketSn(dstPktSn);
-  } 
-  else 
-  {
+  } else {
 	  p_cred->setPacketSn(0);
   }
 
@@ -315,39 +335,42 @@ void IBGenerator::getNextAppMsg()
   
   if (VLQ.at(vl).isEmpty() && isRemoteHoQFree(vl)) 
   {
+    // if (p_msg->getDstLid() == 307)
+    // {
+    //   std::cout << "Sent to H[306] pktidx: " << thisPktIdx + 1 << ", flitidx: " << thisFlitIdx + 1 << std::endl;
+    // }
     sendDataOut(p_cred);
-  } 
-  else 
-  {
+  } else {
     VLQ.at(vl).insert(p_cred);
     EV << "-I- " << getFullPath() << " Queue new FLIT " << p_cred->getName() << " as HoQ not free for vl:"
        << vl << omnetpp::endl;
   }
 
   // now anvance to next FLIT or declare the app msg done
+
   incrementApp(0);
   // decide if we are at end of packet or not
-  /*if (p_msg->getFlitIdx() + 1 == p_msg->getPktLenFlits()) 
-  {
-    // we completed a packet was it the last?
-    if (p_msg->getPktIdx() + 1 == p_msg->getLenPkts())
-    {
-      // we are done with the app msg
-      EV << "-I- " << getFullPath() << " completed appMsg:" 
-         << p_msg->getName() << omnetpp::endl;
-      send(p_msg, "in$o", curApp);
-      appMsgs.at(curApp) = NULL;
-    } 
-    else 
-    {
-      p_msg->setPktIdx(p_msg->getPktIdx());
-      initPacketParams(p_msg, p_msg->getPktIdx());
-    }
-  } 
-  else 
-  {
-    p_msg->setFlitIdx(p_msg->getFlitIdx());
-  }*/
+  // if (++thisFlitIdx == p_msg->getPktLenFlits()) {
+  //   // we completed a packet was it the last?
+  //   if (++thisPktIdx == p_msg->getLenPkts()) {
+  //     // we are done with the app msg
+  //     EV << "-I- " << getFullPath() << " completed appMsg:" 
+  //        << p_msg->getName() << omnetpp::endl;
+  //     if (p_msg->getDstLid() == 307)
+  //     {
+  //       std::cout << "Sent to H[306]" << " completed appMsg:" 
+  //        << p_msg->getName() << std::endl;
+  //     }
+  //     delete p_msg;
+  //     appMsgs[curApp] = NULL;
+  //     send(new IBSentMsg(nullptr, IB_SENT_MSG), "in$o", curApp);
+  //   } else {
+  //     p_msg->setPktIdx(thisPktIdx);
+  //     initPacketParams(p_msg, thisPktIdx);
+  //   }
+  // } else {
+  //   p_msg->setFlitIdx(thisFlitIdx);
+  // }
 }
 
 // arbitrate for next app, generate its FLIT and schedule next push
@@ -356,12 +379,12 @@ void IBGenerator::genNextAppFLIT()
   // get the next application to work on
   if (!arbitrateApps()) 
   {
-    // may be we do not have anything to do
+     // may be we do not have anything to do
     if (pushMsg->isScheduled()) 
     {
       cancelEvent(pushMsg);
     }
-    return;
+     return;
   }
   IBAppMsg *p_msg = appMsgs.at(curApp);
   omnetpp::simtime_t delay_s = 0;
@@ -374,18 +397,19 @@ void IBGenerator::genNextAppFLIT()
   
   // schedule next push
   
-  omnetpp::simtime_t delay = genDlyPerByte_ns*1e-9*flitSize_B ;//+ (5*CCT_Index.at(p_msg->getAppIdx()))*1e-9;
+  omnetpp::simtime_t delay = genDlyPerByte_ns*1e-9*flitSize_B ;//+ (5*CCT_Index[p_msg->getAppIdx()])*1e-9;
   
-  if(!on_cc && !on_newcc)
+  
+  if(on_cc == 0 && on_newcc == 0)
   {
     scheduleAt(omnetpp::simTime()+delay, pushMsg);
   }
-  else if (on_cc == 1 && !on_newcc)
+  else if (on_cc == 1 && on_newcc == 0)
   {
     //change send_interval_ns
-    //send_interval_ns = 48 + 1000*(CCT_Index.at(p_msg->getAppIdx()) * CCT_Index.at(p_msg->getAppIdx())) * 600 / (69 * 69);
+    //send_interval_ns = 48 + 1000*(CCT_Index[p_msg->getAppIdx()] * CCT_Index[p_msg->getAppIdx()]) * 600 / (69 * 69);
     
-    //send_interval_ns = 1000*(CCT_Index.at(p_msg->getAppIdx()) * CCT_Index[p_msg->getAppIdx()]) * 50 / (50 * 50);
+    //send_interval_ns = 1000*(CCT_Index[p_msg->getAppIdx()] * CCT_Index[p_msg->getAppIdx()]) * 50 / (50 * 50);
     //send_interval_ns = 1000*(CCT_Index[p_msg->getAppIdx()] * 2) * 20 / (40 * 40);
     
     //send_interval_ns = ((CCT_Index[p_msg->getAppIdx()]) * 116 + 1638);
@@ -395,13 +419,15 @@ void IBGenerator::genNextAppFLIT()
     //send_interval_ns = ((CCT_Index[p_msg->getAppIdx()]) * (CCT_Index[p_msg->getAppIdx()]) * 2800.0 / 10201.0 + 1638.4 * 1.25 / 4);
     //send_interval_ns = ((CCT_Index[p_msg->getAppIdx()]) * (CCT_Index[p_msg->getAppIdx()]) * 2900.0 / 10201.0 + 1638.4 * 1.25 / 4);
     send_interval_ns = ((CCT_Index.at(p_msg->getAppIdx())) * (CCT_Index.at(p_msg->getAppIdx())) * 3300.0 / 6889.0 + 1638.4 * 1.25 / 4);
-  
+
+    
     /*if(p_msg->getFlitIdx() < 31)
     {
       send_interval_ns = genDlyPerByte_ns*flitSize_B;
     }
     else
     {
+
       //send_interval_ns = 25.6 * 16;
       send_interval_ns = ((CCT_Index[p_msg->getAppIdx()]) * (CCT_Index[p_msg->getAppIdx()]) *  31.0 * 2800.0 / 10201.0 + genDlyPerByte_ns*flitSize_B);
       throughput.record(2048 * 8 / (send_interval_ns + genDlyPerByte_ns*flitSize_B * 31));
@@ -410,18 +436,21 @@ void IBGenerator::genNextAppFLIT()
       {
         cct_index.record(CCT_Index[i]);
       }
+      
     }*/
-  }
+
+  }  
 }
 
 // push is an internal event for generating a new FLIT
-void IBGenerator::handlePush(omnetpp::cMessage *p_msg) //parameter passed not used??
+void IBGenerator::handlePush(omnetpp::cMessage *p_msg)
 {
   // arbitrate next app, 
-  if(!on_cc && !on_newcc)
+  if(on_cc == 0 && on_newcc == 0)
   {
     genNextAppFLIT();
   }
+
 }
 
 
@@ -450,7 +479,11 @@ void IBGenerator::handleTimer(omnetpp::cMessage *p_msg)
     {
       if( CCT_Index.at(i) > CCT_MIN)
       {
-        CCT_Index.at(i) = (CCT_Index.at(i)-1 <= CCT_MIN) ? CCT_MIN : --CCT_Index.at(i);
+        CCT_Index.at(i) -= 1;
+        if(CCT_Index.at(i) <= CCT_MIN)
+        {
+          CCT_Index.at(i) = CCT_MIN;
+        }
       }
       //cct_index.record(CCT_Index[i]);
     }
@@ -459,7 +492,7 @@ void IBGenerator::handleTimer(omnetpp::cMessage *p_msg)
     return;
   }
 
-  if(!on_newcc && p_msg->getKind() == IB_CCTIMER_MSG )
+  if(on_newcc == 0 && p_msg->getKind() == IB_CCTIMER_MSG )
   {
     //send_interval_ns = send_interval_ns * 0.8;
     omnetpp::simtime_t delay = increaseStep_us*1e-6;
@@ -469,19 +502,20 @@ void IBGenerator::handleTimer(omnetpp::cMessage *p_msg)
     }  
     return;
   }
+  
 }
 
 void IBGenerator::handleSendTimer(omnetpp::cMessage *p_msg)
 {
   //timer for send interval
   if(on_cc || on_newcc)
-  {
+  { 
     genNextAppFLIT();
     omnetpp::simtime_t delay1 = send_interval_ns*1e-9;
     //omnetpp::simtime_t delay2 = genDlyPerByte_ns*1e-9*flitSize_B;
     //if(p_msg->getFlitIdx()> 0)
     //{
-    //scheduleAt(omnetpp::simTime()+delay2, sendtimerMsg);
+      //scheduleAt(omnetpp::simTime()+delay2, sendtimerMsg);
     //}
     //else
     //{
@@ -493,26 +527,29 @@ void IBGenerator::handleSendTimer(omnetpp::cMessage *p_msg)
 /* receive FECN from sink module
 1. generate a BECN message, initialize the srclid, dstlid,sl
 */
-
-void IBGenerator::handlePushFECN(IBPushFECNMsg *msg)
-{
-  //cct_index.record(msg->getRecvRate());
-  char name[128];
-  sprintf(name, "BECN-%d-%d-%d-%d", msg->getDstLid(), msg->getSrcLid(), msg->getMsgIdx(), msg->getAppIdx());
+void IBGenerator::handlePushFECN(IBPushFECNMsg *msg){
   IBDataMsg *p_BECN;
+  int srcLid = msg->getDstLid();
+  int dstLid = msg->getSrcLid();
+  int msgIndex = msg->getMsgIdx();
+  int appIndex = msg->getAppIdx();
+  double RecvRate = msg->getRecvRate();
+  //cct_index.record(RecvRate);
+  char name[128];
+  sprintf(name, "BECN-%d-%d-%d-%d", srcLid, dstLid, msgIndex, appIndex);
   p_BECN = new IBDataMsg(name, IB_DATA_MSG);
-  p_BECN->setSrcLid(msg->getDstLid());
+  p_BECN->setSrcLid(srcLid);
   p_BECN->setBitLength(flitSize_B*8);
   p_BECN->setByteLength(flitSize_B);
 
-  p_BECN->setDstLid(msg->getSrcLid());
+  p_BECN->setDstLid(dstLid);
   p_BECN->setSL(msg->getSL());
   p_BECN->setVL(msg->getSL());
 
   p_BECN->setFlitSn(0);
   p_BECN->setPacketId(0);
-  p_BECN->setMsgIdx(msg->getMsgIdx());
-  p_BECN->setAppIdx(msg->getAppIdx());
+  p_BECN->setMsgIdx(msgIndex);
+  p_BECN->setAppIdx(appIndex);
   p_BECN->setPktIdx(0);
   p_BECN->setMsgLen(1);
   p_BECN->setPacketLength(1);
@@ -522,19 +559,19 @@ void IBGenerator::handlePushFECN(IBPushFECNMsg *msg)
 
   p_BECN->setIsBECN(msg->getBECNValue());
   p_BECN->setIsFECN(0);
-  p_BECN->setRecvRate(msg->getRecvRate());
+  p_BECN->setRecvRate(RecvRate);
   unsigned int vl = msg->getSL();
   
-  //BECN_msgIdx.record(msg->getAppIdx());
+  //BECN_msgIdx.record(appIndex);
 
   // now we have a new FLIT at hand we can either Q it or send it over 
   // if there is a place for it in the VLA 
-  if(Last_BECN.at(msg->getSrcLid())!=0)
+  if(Last_BECN.at(dstLid) != 0)
   {
-    //if (omnetpp::simTime()*1e6 - Last_BECN[msg->getSrcLid()] > 15){
-    if (omnetpp::simTime()*1e6 - Last_BECN.at(msg->getSrcLid()) > 0)
+    //if (omnetpp::simTime()*1e6 - Last_BECN[dstLid] > 15){
+    if (omnetpp::simTime()*1e6 - Last_BECN.at(dstLid) > 0)
     {
-      Last_BECN.at(msg->getSrcLid()) = omnetpp::simTime()*1e6;
+      Last_BECN.at(dstLid) = omnetpp::simTime()*1e6;
       if (VLQ.at(vl).isEmpty() && isRemoteHoQFree(vl)) 
       {
         sendDataOut(p_BECN);
@@ -545,7 +582,7 @@ void IBGenerator::handlePushFECN(IBPushFECNMsg *msg)
         EV << "-I- " << getFullPath() << " Queue new BECN FLIT " << p_BECN->getName() << " as HoQ not free for vl:"
         << vl << omnetpp::endl;
       }
-      gen_BECN++;
+    gen_BECN++;
     }
     else
     {      
@@ -554,19 +591,21 @@ void IBGenerator::handlePushFECN(IBPushFECNMsg *msg)
     delete msg;
     return;
   }
-  Last_BECN.at(msg->getSrcLid()) = omnetpp::simTime()*1e6;
+  Last_BECN.at(dstLid) = omnetpp::simTime()*1e6;
   if (VLQ.at(vl).isEmpty() && isRemoteHoQFree(vl)) 
   {
-    sendDataOut(p_BECN);
+      sendDataOut(p_BECN);
   } 
   else 
   {
     VLQ.at(vl).insert(p_BECN);
+
     EV << "-I- " << getFullPath() << " Queue new BECN FLIT " << p_BECN->getName() << " as HoQ not free for vl:"
-       << vl << omnetpp::endl;
+    << vl << omnetpp::endl;
   }
   gen_BECN++;
   delete msg;
+  
 }
 
 
@@ -575,17 +614,23 @@ void IBGenerator::handlePushFECN(IBPushFECNMsg *msg)
 */
 void IBGenerator::handlePushBECN(IBPushBECNMsg *msg)
 {
+  int i = msg->getAppIdx();
+  
+  
   if(on_newcc /*&& srcLid <= 2*/)
   {
+    double RecvRate = msg->getRecvRate();
+    int BECNValue = msg->getBECNValue();
     double currentRate = flitSize_B * 8.0 / send_interval_ns;
+    
     double nextRate = currentRate;
     //cct_index.record(target);
     
-    if(last_BECNValue == 3 && msg->getBECNValue() == 3)
+    if(last_BECNValue == 3 && BECNValue == 3)
     {
       last_BECNValue_count ++;
     }
-    else if(last_BECNValue != 3 && msg->getBECNValue() == 3)
+    else if(last_BECNValue != 3 && BECNValue == 3)
     {
       last_BECNValue_count = 1;
     }
@@ -593,19 +638,19 @@ void IBGenerator::handlePushBECN(IBPushBECNMsg *msg)
     {
       last_BECNValue_count = 0;
     }
-    if(msg->getBECNValue() == 1)//congested
+    if(BECNValue == 1)//congested
     {
-      if(msg->getRecvRate() > 0)
+      if(RecvRate > 0)
       { 
         //if(last_BECNValue != 1)
         //{
-        target = flitSize_B * 8.0 / send_interval_ns;
+          target = flitSize_B * 8.0 / send_interval_ns;
         //}             
-        send_interval_ns = 1.07 * 2048 * 8 / msg->getRecvRate();
-        last_RecvRate = msg->getRecvRate();
+        send_interval_ns = 1.07 * 2048 * 8 / RecvRate;
+        last_RecvRate = RecvRate;
       }
     }    
-    else if (msg->getBECNValue() == 3) //non-congestion
+    else if (BECNValue == 3) //non-congestion
     {
       /*if(last_BECNValue_count >= 5){
       nextRate = currentRate * 0.5 + 0.5*currentRate*(1+ 0.2 * (40.0-currentRate)/40.0);     
@@ -618,7 +663,7 @@ void IBGenerator::handlePushBECN(IBPushBECNMsg *msg)
       }*/
       if(last_BECNValue_count >= 3)
       {
-        //target = target + 0.28;
+      //target = target + 0.28;
         target = target + 0.39;  
         if(target > 32.0)
         {
@@ -634,55 +679,73 @@ void IBGenerator::handlePushBECN(IBPushBECNMsg *msg)
         send_interval_ns = 2048.0 * 8 / nextRate;
       }
     }
-    last_BECNValue = msg->getBECNValue();
+    else if (BECNValue == 2) //congestion-victim
+    {
+
+    }
+    last_BECNValue = BECNValue;
+    
   }
   else if(on_cc /*&& srcLid <= 2*/)
   {
-    if(CCT_Index.at(msg->getAppIdx()) < CCT_Limit)
+    if(CCT_Index.at(i) < CCT_Limit)
     {
-      CCT_Index.at(msg->getAppIdx()) = (CCT_Index.at(msg->getAppIdx())+1 >= CCT_Limit)? CCT_Limit: ++CCT_Index.at(msg->getAppIdx());
+      CCT_Index.at(i) += 1;
+      if(CCT_Index.at(i) >= CCT_Limit)
+      {
+        CCT_Index.at(i) = CCT_Limit;
+      }
     }
   }
   delete msg;
 }
-
 // when a new application message in provided
 void IBGenerator::handleApp(IBAppMsg *p_msg)
 {
   // decide what port it was provided on
-  unsigned int appidx = p_msg->getArrivalGate()->getIndex();
+  unsigned int a = p_msg->getArrivalGate()->getIndex();
+  // if (p_msg->getDstLid() == 307)
+  // {
+  //   std::cout << "found datamsg to lid 307 at " << getSimulation()->getEventNumber() << std::endl;
+  //   std::exit(0);
+  // }
+
   // check that the app is empty or error
-  if (appMsgs.at(appidx)) 
+  if (appMsgs.at(a) != NULL) 
   {
-    error("provided app %d message but app not empty!", appidx);
+    error("provided app %d message but app not empty!", a);
   }
+
   // count total of messages injected
   msgIdx++;
+
   // init the first packet parameters
   initPacketParams(p_msg, 0);
   
   // store it
-  appMsgs.at(appidx) = p_msg;
+  appMsgs.at(a) = p_msg;
 
-  if(!on_cc && !on_newcc)
+  if(on_cc == 0 && on_newcc == 0)
   {
     // if there is curApp msg or waiting on push pushMsg = do nothing
-    if (((curApp != appidx) && appMsgs.at(curApp)) || (pushMsg->isScheduled())) 
+    if (((curApp != a) && (appMsgs.at(curApp) != NULL)) || ( pushMsg->isScheduled())) 
     {
       EV << "-I-" << getFullPath() << " new app message:" << p_msg->getName()
          << " queued since previous message:" << appMsgs.at(curApp)->getName() 
          << " being served" << omnetpp::endl;
       return;
     }
+
     // force the new app to be arbitrated
-    curApp = appidx;
+    curApp = a;
+
     genNextAppFLIT();
   }
   else
   {
     if(msgIdx == 1)
     {
-      curApp = appidx;
+      curApp = a;
       genNextAppFLIT();
       if(!sendtimerMsg->isScheduled())
       {
@@ -690,9 +753,10 @@ void IBGenerator::handleApp(IBAppMsg *p_msg)
         scheduleAt(omnetpp::simTime() + delay1, sendtimerMsg);
       }
     }
-    curApp = appidx;
+    curApp = a;
     //
   }
+ 
 }
 
 // send out data and wait for it to clear
@@ -705,13 +769,18 @@ void IBGenerator::sendDataOut(IBDataMsg *p_msg)
   p_msg->setInjectionTime(omnetpp::simTime()+delay_ns*1e-9);
   p_msg->setTimestamp(omnetpp::simTime()+delay_ns*1e-9);
   //p_msg->setTimestamp(omnetpp::simTime());
-  if(omnetpp::simTime()>=0.01)
+  if(omnetpp::simTime()>=0.01 )
   {
     totalBytesSent += bytes;
   }
   LastPktSendTime = omnetpp::simTime();
   
+  // if (p_msg->getIsAppMsg() && p_msg->getDstLid() == 307)
+  // {
+  //   std::cout << "Send to H[306]: pktidx " << p_msg->getPktIdx() << " msgidx " << p_msg->getMsgIdx() << std::endl;
+  // }
   sendDelayed(p_msg, delay_ns*1e-9, "out");
+
 
   EV << "-I- " << getFullPath() 
      << " sending " << p_msg->getName() 
@@ -756,7 +825,7 @@ void IBGenerator::handleSent(IBSentMsg *p_sent)
 
       // since we popped a message we may have now free'd some space
       // if there is no shceduled push ...
-      if(!on_cc)
+      if(on_cc == 0)
       {
         if (!pushMsg->isScheduled()) 
         {
@@ -779,22 +848,20 @@ void IBGenerator::handleSent(IBSentMsg *p_sent)
 
 void IBGenerator::handleMessage(omnetpp::cMessage *p_msg) 
 {
-  if (p_msg->isSelfMessage())
-    cancelAndDelete(p_msg);
-  else
+  switch((int)p_msg->getKind())
   {
-    switch(p_msg->getKind())
-    {
-      case 3  : handleSent((IBSentMsg *)p_msg); break; //in the case of IB_SENT_MSG
-      case 11 : handleApp((IBAppMsg*)p_msg); break; //in the case of IB_APP_MSG
-      case 12 : handlePush(p_msg); break; //in the case of IB_PUSH_MSG
-      case 14 : handleTimer(p_msg); break; //in the case of IB_TIMER_MSG
-      case 15 : handlePushFECN((IBPushFECNMsg*)p_msg); break; //in the case of IB_PUSHFECN_MSG
-      case 16 : handlePushBECN((IBPushBECNMsg*)p_msg); break; //in the case of IB_PUSHBECN_MSG
-      case 17 : handleTimer(p_msg); break; //in the case of IB_CCTIMER_MSG
-      case 18 : handleSendTimer(p_msg); break; //in the case of IB_SENDTIMER_MSG
-      default: delete p_msg;
-    }
+    case 3  : handleSent((IBSentMsg *)p_msg); break; //in the case of IB_SENT_MSG
+    case 11 : handleApp((IBAppMsg*)p_msg); break; //in the case of IB_APP_MSG
+    case 12 : handlePush(p_msg); break; //in the case of IB_PUSH_MSG
+    case 14 : handleTimer(p_msg); break; //in the case of IB_TIMER_MSG
+    case 15 : handlePushFECN((IBPushFECNMsg*)p_msg); break; //in the case of IB_PUSHFECN_MSG
+    case 16 : handlePushBECN((IBPushBECNMsg*)p_msg); break; //in the case of IB_PUSHBECN_MSG
+    case 17 : handleTimer(p_msg); break; //in the case of IB_CCTIMER_MSG
+    case 18 : handleSendTimer(p_msg); break; //in the case of IB_SENDTIMER_MSG
+    default : if (p_msg->isSelfMessage())
+                cancelAndDelete(p_msg);
+              else
+                delete p_msg;
   }
 }
 
@@ -823,12 +890,12 @@ IBGenerator::~IBGenerator()
   if (cctimerMsg) cancelAndDelete(cctimerMsg);
   if (sendtimerMsg) cancelAndDelete(sendtimerMsg);
 
-  for(int no = 0;no < appMsgs.size();no++)
+  for(int i = 0;i < appMsgs.size();i++)
   {
-    if(appMsgs.at(no))
-    {
-      delete appMsgs.at(no);
-    }
+      if(appMsgs.at(i)!= NULL)
+      {
+        delete appMsgs.at(i);
+      }
   }
   appMsgs.clear();
   for (unsigned int i =0; i<8 ; i++)

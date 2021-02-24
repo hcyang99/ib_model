@@ -78,7 +78,8 @@ void IBInBuf::initialize()
   {
     EV << "-I- " << getFullPath() << " is HCA IBuf" << omnetpp::endl;
     pktfwd = NULL;
-  } else 
+  } 
+  else 
   {
     EV << "-I- " << getFullPath() << " is Switch IBuf " << getId() <<  omnetpp::endl;
     Switch = getParentModule()->getParentModule();
@@ -155,13 +156,8 @@ void IBInBuf::initialize()
   BECNRecv = 0;
   FECNRecv = 0;
   markrate = 5;
-
-
   p_popMsg = NULL;
   p_minTimeMsg = NULL;
-
-
-
 } // init
 
 int IBInBuf::incrBusyUsedPorts() 
@@ -184,7 +180,7 @@ void IBInBuf::sendRxCred(int vl, double delay = 0)
   p_msg->setVL(vl);
   if (!lossyMode) 
   {
-	  p_msg->setFCCL(ABR.at(vl) + staticFree.at(vl));
+    p_msg->setFCCL(ABR.at(vl) + staticFree.at(vl));
     //CreditLimit.record(ABR[vl] + staticFree[vl]);
   } 
   else 
@@ -225,6 +221,7 @@ void IBInBuf::updateVLAHoQ(short int portNum, short vl)
     }
     if (! p_vla->isHoQFree(remotePortNum, vl))
       return;
+    
     EV << "-I- " << getFullPath() << " free HoQ on VLA:"
        << p_vla->getFullPath() << " port:"
        << remotePortNum << " vl:" << vl << omnetpp::endl;
@@ -232,7 +229,7 @@ void IBInBuf::updateVLAHoQ(short int portNum, short vl)
  
   IBDataMsg *p_msg = (IBDataMsg *)Q[portNum][vl].pop();
   
-  if (!hcaIBuf)
+  if (!hcaIBuf) 
   {
     // Add the latency only if not in cut through mode
     // also may be required if the last delivery time is too close
@@ -293,6 +290,7 @@ void IBInBuf::handlePush(IBWireMsg *p_msg)
          << " in lossles wires?" << omnetpp::endl;
       ABR.at(vl) = p_flowMsg->getFCTBS();
     }
+    
     sendRxCred(vl);
     cancelAndDelete(p_msg);
   } 
@@ -327,152 +325,150 @@ void IBInBuf::handlePush(IBWireMsg *p_msg)
       {
         error("Error: dLid should not be 0 for %s", p_dataMsg->getName());
       }
-      
-      if ((curPacketVL < 0) || (curPacketVL > (int)maxVL+1)) {
+      if ((curPacketVL < 0) || (curPacketVL > (int)maxVL+1)) 
+      {
         error("VL out of range: %d", curPacketVL);
       }
       
       // do we have enough credits?
-      if (!lossyMode) 
+		if (!lossyMode) 
+    {
+		  if (curPacketCredits > staticFree.at(curPacketVL)) 
       {
-        if (curPacketCredits > staticFree[curPacketVL]) 
-        {
-          error(" Credits overflow. Required: %d available: %d",curPacketCredits, staticFree[curPacketVL]);
-        }
-		  } 
-      else 
+			  error(" Credits overflow. Required: %d available: %d",curPacketCredits, staticFree.at(curPacketVL));
+		  }
+		} 
+    else 
+    {
+		  // we need to mark out port as -1 to make next flits drop
+		  if (curPacketCredits > staticFree.at(curPacketVL)) 
       {
-        // we need to mark out port as -1 to make next flits drop
-        if (curPacketCredits > staticFree.at(curPacketVL)) 
-        {
-          curPacketOutPort = -1;
-          numDroppedCredits += curPacketCredits;
-          delete p_msg;
-          return;
-        }
-		  } 
+			 curPacketOutPort = -1;
+			 numDroppedCredits += curPacketCredits;
+			 delete p_msg;
+			 return;
+		  }
+		} 
       // lookup out port  on the first credit of a packet
       if (numPorts > 1) 
       {
-        if (!hcaIBuf) 
+    	  if (!hcaIBuf) 
         {
-          curPacketOutPort = pktfwd->getPortByLID(sLid,dLid);
-        if (!p_dataMsg->getBeforeAnySwitch() && (curPacketOutPort == (int)thisPortNum)) 
+    		  curPacketOutPort = pktfwd->getPortByLID(sLid,dLid);
+          if (!p_dataMsg->getBeforeAnySwitch() && (curPacketOutPort == (int)thisPortNum)) 
+          {
+            error("loopback ! packet %s from lid:%d to dlid %d is sent back throgh port: %d ", p_dataMsg->getName(), p_dataMsg->getSrcLid(),p_dataMsg->getDstLid(),curPacketOutPort);
+          }
+        } 
+        else 
         {
-          error("loopback ! packet %s from lid:%d to dlid %d is sent back throgh port: %d ", p_dataMsg->getName(), p_dataMsg->getSrcLid(),p_dataMsg->getDstLid(),curPacketOutPort);
+          curPacketOutPort = 0;
         }
+		  // this is an error flow we need to pass the current message
+		  // to /dev/null
+    	  if (curPacketOutPort < 0) 
+        {
+    		  curPacketOutPort = -1;
+    	  } 
+        else 
+        {
+    		  // get the current inbuf index in the switch
+    		  pktfwd->repQueuedFlits(thisPortNum, curPacketOutPort, p_dataMsg->getDstLid(), curPacketCredits);
+    	  }
       } 
       else 
       {
         curPacketOutPort = 0;
       }
-      // this is an error flow we need to pass the current message
-      // to /dev/null
-      if (curPacketOutPort < 0) 
-      {
-        curPacketOutPort = -1;
-      } 
-      else 
-      {
-        // get the current inbuf index in the switch
-        pktfwd->repQueuedFlits(thisPortNum, curPacketOutPort, p_dataMsg->getDstLid(), curPacketCredits);
-      }
     } 
     else 
     {
-      curPacketOutPort = 0;
+      // Continuation Credit 
+      
+      // check the packet is the expected one:
+      if ((curPacketId != p_dataMsg->getPacketId()) || (curPacketSrcLid != p_dataMsg->getSrcLid())) 
+      {
+        error("got unexpected packet: %s from:%d id: %d "
+                  "during packet: %s from: %d %d",
+                  p_dataMsg->getName(), 
+                  p_dataMsg->getSrcLid(), p_dataMsg->getPacketId(), 
+                  curPacketName.c_str(), curPacketSrcLid, curPacketId);
+      }
     }
-  } 
-  else 
-  {
-    // Continuation Credit 
+
+    // mark the packet as after first switch
+    if (!hcaIBuf)
+	    p_dataMsg->setBeforeAnySwitch(false);
+
+    // if (p_dataMsg->getDstLid() == 307 && p_dataMsg->getIsAppMsg())
+    // {
+    //   std::cout << "H[300] arrived pktidx " << p_dataMsg->getPktIdx() 
+    //     << " msgidx " << p_dataMsg->getMsgIdx() << " portnum " << curPacketOutPort << " event " << getSimulation()->getEventNumber()
+    //     << std::endl;
+    // }
     
-    // check the packet is the expected one:
-    if ((curPacketId != p_dataMsg->getPacketId()) || (curPacketSrcLid != p_dataMsg->getSrcLid())) 
+    // check out port is valid
+    if ((curPacketOutPort < 0) ||  (curPacketOutPort >= (int)numPorts) ) 
     {
-      error("got unexpected packet: %s from:%d id: %d "
-                "during packet: %s from: %d %d",
-                p_dataMsg->getName(), 
-                p_dataMsg->getSrcLid(), p_dataMsg->getPacketId(), 
-                curPacketName.c_str(), curPacketSrcLid, curPacketId);
+      EV << "-E- " << getFullPath() << " dropping packet:" << p_dataMsg->getName() << " by FDB mapping to port:" << curPacketOutPort << omnetpp::endl;
+      cancelAndDelete(p_dataMsg);
+      return;
     }
-  }
-
-	// mark the packet as after first switch
-  if (!hcaIBuf)
-    p_dataMsg->setBeforeAnySwitch(false);
-
-  // if (p_dataMsg->getDstLid() == 307 && p_dataMsg->getIsAppMsg())
-  // {
-  //   std::cout << "H[300] arrived pktidx " << p_dataMsg->getPktIdx() 
-  //     << " msgidx " << p_dataMsg->getMsgIdx() << " portnum " << curPacketOutPort << " event " << getSimulation()->getEventNumber()
-  //     << std::endl;
-  // }
-  
-  // check out port is valid
-  if ((curPacketOutPort < 0) ||  (curPacketOutPort >= (int)numPorts) ) 
-  {
-    EV << "-E- " << getFullPath() << " dropping packet:" << p_dataMsg->getName() << " by FDB mapping to port:" << curPacketOutPort << omnetpp::endl;
-    cancelAndDelete(p_dataMsg);
-    return;
-  }
     
-  // Now consume a credit
-  staticFree.at(curPacketVL)--;
-  staticUsageHist[curPacketVL].collect(staticFree.at(curPacketVL));
-  ABR.at(curPacketVL)++;
-  EV << "-I- " << getFullPath() << " New Static ABR[" 
-      << curPacketVL << "]:" << ABR[curPacketVL] << omnetpp::endl;
-  EV << "-I- " << getFullPath() << " static queued msg:" 
-      << p_dataMsg->getName() << " vl:" << curPacketVL
-      << ". still free:" << staticFree[curPacketVL] << omnetpp::endl;
-
-    
+    // Now consume a credit
+	  staticFree.at(curPacketVL)--;
+    staticUsageHist[curPacketVL].collect(staticFree.at(curPacketVL));
+    ABR.at(curPacketVL)++;
+    EV << "-I- " << getFullPath() << " New Static ABR[" 
+       << curPacketVL << "]:" << ABR.at(curPacketVL) << omnetpp::endl;
+    EV << "-I- " << getFullPath() << " static queued msg:" 
+       << p_dataMsg->getName() << " vl:" << curPacketVL
+       << ". still free:" << staticFree.at(curPacketVL) << omnetpp::endl;
 
     /*
     congestion control marking FECN
     */   
-  double totallength = 0;
-  int congnum = 0;
-  double fraction = 0;
-  
-  if(!hcaIBuf)
-  {
-    congnum = 0;
-    for(int i = 0; i < portsnum_parent; i++)
+    double totallength = 0;
+    int congnum = 0;
+    double fraction = 0;
+   
+    if(!hcaIBuf)
     {
-      char path[40];
-      sprintf(path,"^.^.subport[%d].ibuf",i);
-      IBInBuf* otheribuf = dynamic_cast<IBInBuf*>(getModuleByPath(path));
-      totallength += otheribuf->Q[curPacketOutPort][curPacketVL].length(); 
-      if(otheribuf->Q[curPacketOutPort][curPacketVL].length())
+      congnum = 0;
+      for(int i = 0; i < portsnum_parent; i++)
       {
-        congnum++;
-        fraction = fraction + otheribuf->Q[curPacketOutPort][curPacketVL].length()/32.0;
-        //std::cout<<curPacketOutPort<<" "<< i<<" "<<otheribuf->Q[curPacketOutPort][curPacketVL].length()<<omnetpp::endl;
+        char path[40];
+        sprintf(path,"^.^.subport[%d].ibuf",i);
+        IBInBuf* otheribuf = dynamic_cast<IBInBuf*>(getModuleByPath(path));
+        totallength += otheribuf->Q[curPacketOutPort][curPacketVL].getLength(); 
+        if(otheribuf->Q[curPacketOutPort][curPacketVL].getLength())
+        {
+          congnum++;
+          fraction = fraction + otheribuf->Q[curPacketOutPort][curPacketVL].getLength()/32.0;
+          //std::cout<<curPacketOutPort<<" "<< i<<" "<<otheribuf->Q[curPacketOutPort][curPacketVL].length()<<omnetpp::endl;
+        }
       }
+       //totallength = Q[curPacketOutPort][curPacketVL].length();
+       //inputQueueLength.record(totallength);
+       //inputQueueLength.record(Q[curPacketOutPort][curPacketVL].length());
     }
-      //totallength = Q[curPacketOutPort][curPacketVL].length();
-      //inputQueueLength.record(totallength);
-      //inputQueueLength.record(Q[curPacketOutPort][curPacketVL].length());
-  }
-  //StaticFreeNum.record(staticFree[curPacketVL]);
-  
-  //if(! hcaIBuf && congnum && totallength/(congnum*32) > 0.1 && Q[curPacketOutPort][curPacketVL].length())
-  if(!hcaIBuf && totallength)
-  //fraction = totallength/32.0*congnum;
-  //if(!hcaIBuf && fraction)
-  {
-
-    if(!p_dataMsg->getIsFECN()&& !p_dataMsg->getIsBECN() && !p_dataMsg->getFlitSn())
+    //StaticFreeNum.record(staticFree[curPacketVL]);
+    
+    //if(! hcaIBuf && congnum && totallength/(congnum*32) > 0.1 && Q[curPacketOutPort][curPacketVL].length())
+    if(!hcaIBuf && totallength)
+    //fraction = totallength/32.0*congnum;
+    //if(!hcaIBuf && fraction)
     {
-      //inputQueueLength.record(totallength / 32);
-      //std::cout<<"mark! "<< totallength << omnetpp::endl;
-      p_dataMsg->setIsFECN(2);
-      
+
+      if(!p_dataMsg->getIsFECN()&& !p_dataMsg->getIsBECN() && p_dataMsg->getFlitSn()== 0)
+      {
+        //inputQueueLength.record(totallength / 32);
+        //std::cout<<"mark! "<< totallength << omnetpp::endl;
+        p_dataMsg->setIsFECN(2);  
+      }
+      //inputQueueLength.record(p_dataMsg->getSrcLid());
     }
-    //inputQueueLength.record(p_dataMsg->getSrcLid());
-  }
+
     // For every DATA "credit" (not only first one)
     // - Queue the Data in the Q[V]
     Q[curPacketOutPort][curPacketVL].insert(p_dataMsg);
@@ -531,9 +527,9 @@ void IBInBuf::handleSent(IBSentMsg *p_msg)
   // Only on switch ibuf we need to do the following...
   if (! hcaIBuf) 
   {
-    // update the outstanding flits for this out-port
-    // HACK: assume the port index is the port num that is switch connectivity is N x N following port idx
-    pktfwd->repQueuedFlits(thisPortNum, p_msg->getArrivalGate()->getIndex(), 0, -1);
+	// update the outstanding flits for this out-port
+	// HACK: assume the port index is the port num that is switch connectivity is N x N following port idx
+	  pktfwd->repQueuedFlits(thisPortNum, p_msg->getArrivalGate()->getIndex(), 0, -1);
 
     // if this was the last message we need to schedule a "done"
     // on each of the output ports
@@ -547,7 +543,6 @@ void IBInBuf::handleSent(IBSentMsg *p_msg)
         EV.flush();
         exit(1);
       }
-      
       numBeingSent--;
       EV << "-I- " << getFullPath() << " completed send. down to:" 
          << numBeingSent << " sends" << omnetpp::endl;
@@ -562,6 +557,7 @@ void IBInBuf::handleSent(IBSentMsg *p_msg)
         send(p_doneMsg, "out", pn);
       }
     }
+    
     // if the data was sent we can expect the HoQ to be empty...
     updateVLAHoQ(p_msg->getArrivalGate()->getIndex(), p_msg->getVL());
   }
@@ -571,11 +567,13 @@ void IBInBuf::handleSent(IBSentMsg *p_msg)
 
 void IBInBuf::handleTQLoadMsg(IBTQLoadUpdateMsg *p_msg)
 {
-	if (!hcaIBuf) 
-  {
+	if (!hcaIBuf) {
+		unsigned int firstLid = p_msg->getFirstLid();
+		unsigned int lastLid = p_msg->getLastLid();
+		unsigned int srcRank = p_msg->getSrcRank();
+		int load= p_msg->getLoad();
 		delete p_msg;
-		pktfwd->handleTQLoadMsg(getParentModule()->getIndex(), (unsigned int) p_msg->getSrcRank(), 
-    (unsigned int) p_msg->getFirstLid(), (unsigned int) p_msg->getLastLid(), (int)p_msg->getLoad());
+		pktfwd->handleTQLoadMsg(getParentModule()->getIndex(), srcRank, firstLid, lastLid, load);
 	} 
   else 
   {
@@ -588,8 +586,7 @@ void IBInBuf::handleTQLoadMsg(IBTQLoadUpdateMsg *p_msg)
 }
 
 void IBInBuf::handleMessage(omnetpp::cMessage *p_msg)
-{
-  switch (p_msg->getKind())
+{   switch ((int)p_msg->getKind())
   {
     case 1  : handlePush((IBWireMsg*)p_msg); break; //in the case of IB_DATA_MSG
     case 2  : handlePush((IBWireMsg*)p_msg); break; //in the case of IB_FLOWCTRL_MSG
@@ -599,39 +596,25 @@ void IBInBuf::handleMessage(omnetpp::cMessage *p_msg)
               if (p_msg->isSelfMessage())
                 cancelAndDelete(p_msg);
               else
-                delete p_msg;
+                delete p_msg;  
   }
 }
 
 void IBInBuf::finish()
 {
-  /*for (unsigned int vl = 0; vl < maxVL+1; vl++ ) {
-       EV << "STAT: " << getFullPath() << " VL:" << vl;
-       EV << " Used Static Credits num/avg/max/std:"
-             << staticUsageHist[vl].getCount()
-             << " / " << staticUsageHist[vl].getMean()
-             << " / " << staticUsageHist[vl].getMax()
-             << " / " << staticUsageHist[vl].getStddev()
-             << omnetpp::endl;
-  }*/
-  //recordScalar("marknum", marknum);
-  //if(hcaIBuf)
-  //{
-    //recordScalar("Received-BECN-ibuf", BECNRecv);
-    //recordScalar("Received-FECN-ibuf", FECNRecv);
-  //}
+
 }
 
 IBInBuf::~IBInBuf()
 {
-  if (p_popMsg)
-  {
-    cancelAndDelete(p_popMsg);
-  }
-  if(p_minTimeMsg)
-  {
-    cancelAndDelete(p_minTimeMsg);
-  }
+    if (p_popMsg)
+    {
+      cancelAndDelete(p_popMsg);
+    }
+    if(p_minTimeMsg)
+    {
+      cancelAndDelete(p_minTimeMsg);
+    }
   for (int pn = 0; pn < gateSize("out"); pn++) 
   {
     if(Q[pn]!= NULL)

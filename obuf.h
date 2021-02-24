@@ -122,7 +122,7 @@ class IBOutBuf : public omnetpp::cSimpleModule
 public:
    // used by the VLA to validate the last arbitration
    int  getNumFreeCredits() {
-	  return(qSize - queue.getLength());
+	  return(qSize - queue.length());
    };
 
    // used by VLA to know how many data packets were already sent

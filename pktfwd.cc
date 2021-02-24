@@ -25,6 +25,7 @@ Define_Module(Pktfwd);
 
 void Pktfwd::initialize() 
 {
+
 	Switch = getParentModule();
 	if (!Switch) 
 	{
@@ -56,7 +57,7 @@ int Pktfwd::getPortByLID(unsigned int sLid, unsigned int dLid)
 	if (dLid >= FDB->size()) 
 	{
 	    error("-E- getPortByLID: LID %d is out of available FDB range %d",
-			dLid, FDB->size() - 1);
+		dLid, FDB->size() - 1);
 	}
 	outPort = (*FDB)[dLid];
 	/*if(sLid == 3 && (outPort == 4 || outPort == 5))

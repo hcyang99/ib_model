@@ -43,6 +43,7 @@ void IBOutBuf::initialize()
   flowControlDelay.setRangeAutoUpper(0,10,1.2);
   qDepth.setName("Queue Depth");
 
+
   totalBytesSent = 0;
   firstPktSendTime = 0;
   flitsSources.setName("Flits Sources");
@@ -75,14 +76,14 @@ void IBOutBuf::initialize()
   {
     // we do want to have a continous flow of MinTime
     p_minTimeMsg = new omnetpp::cMessage("minTime", IB_MINTIME_MSG);
-    
+  
     // Send the first mintime immediately so that all is initialised 
     // when we get first packets
     scheduleAt(omnetpp::simTime() , p_minTimeMsg);
   } 
   else 
   {
-	 EV << "-I- " << getFullPath() << " port DISABLED " << omnetpp::endl;
+	  EV << "-I- " << getFullPath() << " port DISABLED " << omnetpp::endl;
   }
 
   sent_BECN = 0;
@@ -95,7 +96,7 @@ void IBOutBuf::initialize()
 } // initialize
 
 // places a new allocated IBTQLoadUpdateMsg on the buffer
-void IBOutBuf::sendOrQueuePortLoadUpdateMsg(unsigned int rank, unsigned int firstLid, unsigned int lastLid, int load)
+void IBOutBuf::sendOrQueuePortLoadUpdateMsg(unsigned int rank, unsigned int firstLid, unsigned int lastLid, int load) 
 {
 	Enter_Method("sendOrQueuePortLoadUpdateMsg lid-range:[%d,%d] load:%d",
 			firstLid, lastLid, load);
@@ -109,15 +110,15 @@ void IBOutBuf::sendOrQueuePortLoadUpdateMsg(unsigned int rank, unsigned int firs
 	p_msg->setByteLength(8);
 
 	// if there is no other message on the wire sneak out
-	if (!p_popMsg->isScheduled()) 
+	if ( ! p_popMsg->isScheduled() ) 
   {
 		sendOutMessage(p_msg);
 	} 
   else 
   {
-    EV << "-I- " << getFullPath() << " queued port-load msg. mgtQ depth " << mgtQ.getLength() << omnetpp::endl;
-    mgtQ.insert(p_msg);
-  }
+	  EV << "-I- " << getFullPath() << " queued port-load msg. mgtQ depth " << mgtQ.getLength() << omnetpp::endl;
+	  mgtQ.insert(p_msg);
+	}
 }
 
 // send the message out
@@ -145,7 +146,6 @@ void IBOutBuf::sendOutMessage(IBWireMsg *p_msg)
 
     flitsSources.collect(p_dataMsg->getSrcLid());
 
-
     if(p_dataMsg->getIsBECN() && !p_dataMsg->getIsFECN())
     {
       sent_BECN++;
@@ -153,7 +153,7 @@ void IBOutBuf::sendOutMessage(IBWireMsg *p_msg)
   }
   send(p_msg, "out");
 
-  if (p_popMsg && !p_popMsg->isScheduled()) 
+  if (p_popMsg &&  ! p_popMsg->isScheduled() ) 
   {
     scheduleAt(gate("out")->getTransmissionChannel()->getTransmissionFinishTime(), p_popMsg);
   }
@@ -165,10 +165,9 @@ void IBOutBuf::sendOutMessage(IBWireMsg *p_msg)
     //{
     if (!timerMsg->isScheduled() && on_throughput_obuf > 0) 
     {
-      
-      //omnetpp::simtime_t delay = genDlyPerByte_ns*1e-9*flitSize_B;
-      omnetpp::simtime_t delay = timeStep_us*1e-6;
-      scheduleAt(omnetpp::simTime()+delay, timerMsg);
+        //omnetpp::simtime_t delay = genDlyPerByte_ns*1e-9*flitSize_B;
+        omnetpp::simtime_t delay = timeStep_us*1e-6;
+        scheduleAt(omnetpp::simTime()+delay, timerMsg);
     }
     //}
   }
@@ -193,7 +192,7 @@ void IBOutBuf::qMessage(IBDataMsg *p_msg)
     if ( qSize <= queue.getLength() ) 
     {
       error("-E- %s  need to insert into a full Q. qSize:%d qLength:%d",
-              getFullPath().c_str(), qSize, queue.getLength());
+      getFullPath().c_str(), qSize, queue.getLength());
     }
     
     EV << "-I- " << getFullPath() << " queued data msg:" << p_msg->getName()
@@ -206,7 +205,7 @@ void IBOutBuf::qMessage(IBDataMsg *p_msg)
   {
     // track the time this PACKET (all credits) spent in the Q
     // the last credit of a packet always
-    if ( p_msg->getFlitSn() + 1 == p_msg->getPacketLength() )
+    if ( p_msg->getFlitSn() + 1 == p_msg->getPacketLength() ) 
     {
       packetStoreHist.collect( omnetpp::simTime() - packetHeadTimeStamp );
     } 
@@ -243,7 +242,7 @@ int IBOutBuf::sendFlowControl()
     return(0);
   }
 
-  for (; (sentUpdate == 0) && (curFlowCtrVL < maxVL+1); curFlowCtrVL++ ) 
+  for (; (!sentUpdate) && (curFlowCtrVL < maxVL+1); curFlowCtrVL++ ) 
   {
     int i = curFlowCtrVL;
     
@@ -350,7 +349,7 @@ void IBOutBuf::handlePop()
       {
         packetStoreHist.collect( omnetpp::simTime() - packetHeadTimeStamp );
       } 
-      else if ( !p_cred->getFlitSn() ) 
+      else if ( !p_cred->getFlitSn()) 
       {
         packetHeadTimeStamp = p_msg->getTimestamp();
       }
@@ -383,13 +382,13 @@ void IBOutBuf::handleMinTime()
   curFlowCtrVL = 0;
   isMinTimeUpdate = 1;
   // if we do not have any pop message - we need to create one immediatly
-  if (p_popMsg && !p_popMsg->isScheduled() ) 
+  if (p_popMsg && ! p_popMsg->isScheduled() ) 
   {
     scheduleAt(omnetpp::simTime() + 1e-9, p_popMsg);
   }
-  
   // we use the min time to collect Queue depth stats:
   //qDepthHist.collect( queue.length() );
+
   scheduleAt(omnetpp::simTime() + credMinTime_us*1e-6, p_minTimeMsg);
 } // handleMinTime
   
@@ -413,14 +412,13 @@ void IBOutBuf::handleTimer(omnetpp::cMessage *p_msg)
     BytesSentLastPeriod = 0;
 
     omnetpp::simtime_t delay = timeStep_us*1e-6;
-    scheduleAt(omnetpp::simTime()+delay, p_msg);
-       
+    scheduleAt(omnetpp::simTime()+delay, p_msg); 
   }
 }
 
 void IBOutBuf::handleMessage(omnetpp::cMessage *p_msg)
 {
-  switch (p_msg->getKind())
+  switch ((int)p_msg->getKind())
   {
     case 1  : qMessage((IBDataMsg*)p_msg); break; // in the case of IB_DATA_MSG
     case 5  : handleRxCred((IBRxCredMsg*)p_msg); break;// in the case of IB_RXCRED_MSG

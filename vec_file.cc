@@ -52,8 +52,7 @@ vecFile::parse(string fileName, int isInt)
   while (fgets(buf, 4095, f) != NULL) 
   {
     lineNum++;
-    if (strlen(buf) > 4095) 
-    {
+    if (strlen(buf) > 4095) {
       cout << "-E- vector file:" << fileName 
            << " line:" << lineNum << " length:" << strlen(buf)
            << " is too long (>1024). Please split into multiple lines." 
@@ -162,13 +161,13 @@ vecFile::getFloatVec(unsigned int objIdx)
   if (floatData.size() <= objIdx) 
     return NULL;
   else
-    return &floatData[objIdx];
+    return &floatData.at(objIdx);
 }
 
 /////////////////////////////////////////////////////////////////////////////
 vecFiles* vecFiles::singleton = 0;
 
-vecFiles::vecFiles()
+vecFiles::vecFiles() 
 {
 }
 
@@ -229,7 +228,7 @@ vecFiles::getFloatVec(string fileName, int objIdx)
   {
     f = parseNewFile(fileName, 0 /* is float */);
   } 
-  else
+  else 
   {
     f = (*fI).second;
   }
@@ -248,12 +247,10 @@ vecFiles::getFloatVec(string fileName, int objIdx)
 
 using namespace std;
 
-int main(int argc, char**argv) 
-{
+int main(int argc, char**argv) {
   vecFiles *v = vecFiles::get();
   
-  for (int obj = 0; obj < 10; obj++) 
-  {                           
+  for (int obj = 0; obj < 10; obj++) {                           
     vector<float> *flv = v->getFloatVec("test_float.vec",obj);
     if (flv == NULL) continue;
     cout << "obj:" << obj << " ";
@@ -264,8 +261,7 @@ int main(int argc, char**argv)
   
   vector<int> *vec2 = v->getIntVec("test_int.vec",0);
   (*vec2)[2] = 12346;
-  for (int obj = 0; obj < 10; obj++) 
-  {
+  for (int obj = 0; obj < 10; obj++) {
     vector<int> *vec = v->getIntVec("test_int.vec",obj);
     if (vec == NULL) continue;
     cout << "obj:" << obj << " ";
