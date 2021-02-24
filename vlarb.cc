@@ -1019,14 +1019,14 @@ IBVLArb::~IBVLArb()
       {
         if(inPktHoqPerVL[pn][j])
         {
-          //delete inPktHoqPerVL[pn][j];
+          delete inPktHoqPerVL[pn][j];
         }
       }
-      //delete inPktHoqPerVL[pn];
+      delete inPktHoqPerVL[pn];
     }
   }
   if(inPktHoqPerVL)
   {
-    //delete inPktHoqPerVL;
+    delete inPktHoqPerVL;
   }
 }
