@@ -35,6 +35,7 @@ public:
   // state
   int numPorts;          // number of switch ports
   std::vector<int> *FDB; // deterministic routing out port by dlid from vec file
+  std::vector<int> FDB_Auto; // FDB auto-setup based on routing information received from a cPacket
   cModule* Switch;
 
 public:

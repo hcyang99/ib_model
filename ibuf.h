@@ -42,11 +42,11 @@
 // * On Push the packet is classified to be flow control or data:
 //   If it is flow control info:
 //     The FCCL is delivered through the TxCred to the VLA
-//     ARB is overwritten with FCTBS (and cause a RxCred send to OBUF)
+//     ABR is overwritten with FCTBS (and cause a RxCred send to OBUF)
 //   If it is DATA Packet:
-//     If the first credit of the packet need to decide which buffers
+//     If it is the first credit of the packet need to decide which buffers
 //     should be used for storing the packet:
-//     - Lookup the target port of this pakcet by consulting the LFT
+//     - Lookup the target port of this packet by consulting the LFT
 //       track it in CurOutPort
 //     - Make sure enough credits exists for this VL (inspecting the
 //       FREE[VL]). If there are not enough credits ASSERT.
@@ -76,7 +76,7 @@
 // * If HOQ in the VLA is empty - send a push to the VLA.
 // * When VLA completes sending the credit it provides back the "sent". Then
 //   a new credit is moved to the HOQ in the VLA.
-// * On the last credit of sent packet we decreas the numBusyPorts. Send "done"
+// * On the last credit of sent packet we decrease the numBusyPorts. Send "done"
 //   to all the connected VLAs
 //
 //
@@ -117,7 +117,7 @@ class IBInBuf : public omnetpp::cSimpleModule
   unsigned int numPorts;        // the number of ports we drive
   unsigned int maxVL;           // Maximum value of VL
   unsigned int width;           // the width of the incoming port 1/4/8/12
-  int hcaIBuf;                  // > 0 if an HCA port IBuf
+  int hcaIBuf;                  // > 0 if an HCA port IBuf (0 means a normal switch and anything other grater than 0 means it is a HCA)
   bool lossyMode;               // if true make this port lossy
 
   // data strcture
@@ -125,7 +125,7 @@ class IBInBuf : public omnetpp::cSimpleModule
   
   int hoqOutPort[8];  // The output port the packet at the HOQ is targetted to
   std::vector<unsigned int> staticFree;  // number of free credits per VL
-  std::vector<long> ABR;    // total number of received credits per VL
+  std::vector<long> ABR;    // total number of received credits per VL (ABR = Adjusted Blocks Received)
   unsigned int thisPortNum; // holds the port num this is part of
 
   // there is only one packet stream allowed on the input so we track its

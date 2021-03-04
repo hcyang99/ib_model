@@ -73,7 +73,7 @@ message IBDataMsg extends IBWireMsg
   int PacketLengthBytes;// Total packet Length in Bytes
   int dstLid;         	// target LID 
   int srcLid;         	// source LID 
-  int SL;             	// the SL 
+  int SL;             	// the SL (Service Levels)
   int useStatic;       	// Used in ib_credits
   simtime_t SwTimeStamp;// Time stamp set when credit gets in IBRX    
   simtime_t injectionTime; // the time the credit hit the wire 

@@ -115,7 +115,7 @@ class IBSink : public omnetpp::cSimpleModule
   std::vector<int> VlFlits;   // total number of FLITs per VL
   int  AccBytesRcv;           // total number of bytes received
   omnetpp::cOutVector oooPackets;      // vector of number of total OOO packets received
-  unsigned int totOOOPackets; // total number of OOO packets received
+  unsigned int totOOOPackets; // total number of OOO packets received (OOO stands for out of order)
   omnetpp::cStdDev oooWindow;          // in packets
   unsigned int totOOPackets;  // the total number of packets that need retransmission inc the window
   unsigned int totIOPackets;  // the total packets received in order

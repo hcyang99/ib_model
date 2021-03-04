@@ -31,7 +31,7 @@ According to IB spec.
 PARAMETERS:	
 recordVectors: control recording of vectors
 width: Interface width 1x 4x 8x 12x
-isHcaArbiter: if not zero emans the VLA is in HCA
+isHcaArbiter: if not zero means the VLA is in HCA
 numPorts: number of input ports 
 coreFreq_MH: Core frequency in MHz
 maxVL: Maximum VL we send on

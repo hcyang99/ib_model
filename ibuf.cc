@@ -181,7 +181,6 @@ void IBInBuf::sendRxCred(int vl, double delay = 0)
   if (!lossyMode) 
   {
     p_msg->setFCCL(ABR.at(vl) + staticFree.at(vl));
-    //CreditLimit.record(ABR[vl] + staticFree[vl]);
   } 
   else 
   {
@@ -211,7 +210,7 @@ void IBInBuf::updateVLAHoQ(short int portNum, short vl)
   // find the VLA connected to the given port and
   // call its method for checking and setting HoQ
   omnetpp::cGate *p_gate = gate("out", portNum)->getPathEndGate();
-  if (! hcaIBuf) 
+  if (!hcaIBuf) 
   {
     int remotePortNum = p_gate->getIndex();
     IBVLArb *p_vla = dynamic_cast<IBVLArb *>(p_gate->getOwnerModule());
@@ -219,7 +218,7 @@ void IBInBuf::updateVLAHoQ(short int portNum, short vl)
     {
       error("-E- fail to get VLA from out port: %d", portNum);
     }
-    if (! p_vla->isHoQFree(remotePortNum, vl))
+    if (!p_vla->isHoQFree(remotePortNum, vl))
       return;
     
     EV << "-I- " << getFullPath() << " free HoQ on VLA:"
@@ -231,7 +230,7 @@ void IBInBuf::updateVLAHoQ(short int portNum, short vl)
   
   if (!hcaIBuf) 
   {
-    // Add the latency only if not in cut through mode
+    // Add the latency only if not in cast-through mode
     // also may be required if the last delivery time is too close
     // and we must insert delay to avoid reordering
     omnetpp::simtime_t storeTime = omnetpp::simTime() - p_msg->getArrivalTime();
@@ -331,26 +330,26 @@ void IBInBuf::handlePush(IBWireMsg *p_msg)
       }
       
       // do we have enough credits?
-		if (!lossyMode) 
-    {
-		  if (curPacketCredits > staticFree.at(curPacketVL)) 
+      if (!lossyMode) 
       {
-			  error(" Credits overflow. Required: %d available: %d",curPacketCredits, staticFree.at(curPacketVL));
-		  }
-		} 
-    else 
-    {
-		  // we need to mark out port as -1 to make next flits drop
-		  if (curPacketCredits > staticFree.at(curPacketVL)) 
+        if (curPacketCredits > staticFree.at(curPacketVL)) 
+        {
+          error(" Credits overflow. Required: %d available: %d",curPacketCredits, staticFree.at(curPacketVL));
+        }
+      } 
+      else 
       {
-			 curPacketOutPort = -1;
-			 numDroppedCredits += curPacketCredits;
-			 delete p_msg;
-			 return;
-		  }
-		} 
-      // lookup out port  on the first credit of a packet
-      if (numPorts > 1) 
+        // we need to mark out port as -1 to make next flits drop
+        if (curPacketCredits > staticFree.at(curPacketVL)) 
+        {
+          curPacketOutPort = -1;
+          numDroppedCredits += curPacketCredits;
+          delete p_msg;
+          return;
+        }
+      } 
+      // lookup out port on the first credit of a packet
+      if (numPorts > 1)
       {
     	  if (!hcaIBuf) 
         {
@@ -359,14 +358,14 @@ void IBInBuf::handlePush(IBWireMsg *p_msg)
           {
             error("loopback ! packet %s from lid:%d to dlid %d is sent back throgh port: %d ", p_dataMsg->getName(), p_dataMsg->getSrcLid(),p_dataMsg->getDstLid(),curPacketOutPort);
           }
-        } 
+        }
         else 
         {
           curPacketOutPort = 0;
         }
-		  // this is an error flow we need to pass the current message
-		  // to /dev/null
-    	  if (curPacketOutPort < 0) 
+        // this is an error flow we need to pass the current message
+        // to /dev/null
+    	  if (curPacketOutPort < 0)
         {
     		  curPacketOutPort = -1;
     	  } 
@@ -399,13 +398,6 @@ void IBInBuf::handlePush(IBWireMsg *p_msg)
     // mark the packet as after first switch
     if (!hcaIBuf)
 	    p_dataMsg->setBeforeAnySwitch(false);
-
-    // if (p_dataMsg->getDstLid() == 307 && p_dataMsg->getIsAppMsg())
-    // {
-    //   std::cout << "H[300] arrived pktidx " << p_dataMsg->getPktIdx() 
-    //     << " msgidx " << p_dataMsg->getMsgIdx() << " portnum " << curPacketOutPort << " event " << getSimulation()->getEventNumber()
-    //     << std::endl;
-    // }
     
     // check out port is valid
     if ((curPacketOutPort < 0) ||  (curPacketOutPort >= (int)numPorts) ) 
@@ -445,28 +437,15 @@ void IBInBuf::handlePush(IBWireMsg *p_msg)
         {
           congnum++;
           fraction = fraction + otheribuf->Q[curPacketOutPort][curPacketVL].getLength()/32.0;
-          //std::cout<<curPacketOutPort<<" "<< i<<" "<<otheribuf->Q[curPacketOutPort][curPacketVL].length()<<omnetpp::endl;
         }
       }
-       //totallength = Q[curPacketOutPort][curPacketVL].length();
-       //inputQueueLength.record(totallength);
-       //inputQueueLength.record(Q[curPacketOutPort][curPacketVL].length());
     }
-    //StaticFreeNum.record(staticFree[curPacketVL]);
-    
-    //if(! hcaIBuf && congnum && totallength/(congnum*32) > 0.1 && Q[curPacketOutPort][curPacketVL].length())
     if(!hcaIBuf && totallength)
-    //fraction = totallength/32.0*congnum;
-    //if(!hcaIBuf && fraction)
     {
-
       if(!p_dataMsg->getIsFECN()&& !p_dataMsg->getIsBECN() && p_dataMsg->getFlitSn()== 0)
       {
-        //inputQueueLength.record(totallength / 32);
-        //std::cout<<"mark! "<< totallength << omnetpp::endl;
         p_dataMsg->setIsFECN(2);  
       }
-      //inputQueueLength.record(p_dataMsg->getSrcLid());
     }
 
     // For every DATA "credit" (not only first one)
@@ -497,7 +476,7 @@ void IBInBuf::simpleCredFree(int vl)
   if (staticFree.at(vl) < maxStatic.at(vl)) 
   {
     staticFree.at(vl)++;
-    // need to update the OBUF we have one free... 
+    // need to update the OBUF we have one free...
     sendRxCred(vl);
   } 
   else 
@@ -516,8 +495,6 @@ void IBInBuf::handleSent(IBSentMsg *p_msg)
   {
     totalUsedStatics += maxStatic.at(vli) - staticFree.at(vli); 
   }
-  
-  //usedStaticCredits.record( totalUsedStatics );
   
   // update the free credits accordingly:
   int vl = p_msg->getVL();
@@ -557,17 +534,16 @@ void IBInBuf::handleSent(IBSentMsg *p_msg)
         send(p_doneMsg, "out", pn);
       }
     }
-    
     // if the data was sent we can expect the HoQ to be empty...
     updateVLAHoQ(p_msg->getArrivalGate()->getIndex(), p_msg->getVL());
   }
-  
   cancelAndDelete(p_msg);
 }
 
 void IBInBuf::handleTQLoadMsg(IBTQLoadUpdateMsg *p_msg)
 {
-	if (!hcaIBuf) {
+	if (!hcaIBuf) 
+  {
 		unsigned int firstLid = p_msg->getFirstLid();
 		unsigned int lastLid = p_msg->getLastLid();
 		unsigned int srcRank = p_msg->getSrcRank();
@@ -577,7 +553,6 @@ void IBInBuf::handleTQLoadMsg(IBTQLoadUpdateMsg *p_msg)
 	} 
   else 
   {
-		//delete p_msg;
     if (p_msg->isSelfMessage())
       cancelAndDelete(p_msg);
     else
@@ -602,7 +577,6 @@ void IBInBuf::handleMessage(omnetpp::cMessage *p_msg)
 
 void IBInBuf::finish()
 {
-
 }
 
 IBInBuf::~IBInBuf()
