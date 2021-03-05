@@ -28,7 +28,5 @@ simple Pktfwd like PktFwd_Ifc
 {
 	parameters:
     int numPorts;      // number of switch ports
-    string fdbsVecFile;// FDBs vectors file
-    int fdbIndex;      // index of the FDB in the vec files
     @display("i=abstract/dispatcher");
 }
