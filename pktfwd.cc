@@ -31,9 +31,24 @@ void Pktfwd::initialize()
 		error("-E- Failed to obtain an parent Switch module");
 	}
 	numPorts = Switch->par("numSwitchPorts");
+
+	// setup pointer to FDB
+	const char *fdbsFile = par("fdbsVecFile");
+	int fdbIdx = par("fdbIndex");
+	vecFiles *vecMgr = vecFiles::get();
+	FDB = vecMgr->getIntVec(fdbsFile, fdbIdx);
+	if (FDB == NULL) 
+	{
+		error("-E- Failed to obtain an FDB %s, %d", fdbsFile, fdbIdx);
+	} 
+	else 
+	{
+		EV<< "-I- " << getFullPath() << " Obtained FDB of size:"
+		<< FDB->size() << omnetpp::endl;
+	}
 }
 
-void Pktfwd::FDB_Autoconfigure(const omnetpp::cPacket *pkt) 
+/*void Pktfwd::FDB_Autoconfigure(const omnetpp::cPacket *pkt) 
 {
 	Enter_Method("Configuring FDB");
 	if (pkt == NULL|| !pkt->getVector.size())
@@ -52,7 +67,7 @@ void Pktfwd::FDB_Autoconfigure(const omnetpp::cPacket *pkt)
 		}
 		FDB = &FDB_Auto;
 	}
-}
+}*/
 
 // get the output port for the given LID - the actual AR or deterministic routing
 int Pktfwd::getPortByLID(unsigned int sLid, unsigned int dLid) 
