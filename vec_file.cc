@@ -30,7 +30,8 @@
 
 using namespace std;
 
-int vecFile::parse(string fileName, int isInt) 
+int 
+vecFile::parse(string fileName, int isInt) 
 {
   char buf[4095];
   int lineNum = 0;
@@ -77,6 +78,7 @@ int vecFile::parse(string fileName, int isInt)
            << endl;
       return 1;
     }
+    
     // make sure the vector size is adequate
     if (isInt) 
     { 
@@ -96,6 +98,7 @@ int vecFile::parse(string fileName, int isInt)
           floatData.push_back(tmp);
       }
     }
+    
     // now read next values
     tok = strtok_r(NULL, " ,", &lasts);
     while (tok != NULL) 
@@ -134,7 +137,7 @@ int vecFile::parse(string fileName, int isInt)
       tok = strtok_r(NULL, " ,", &lasts);
     }
   }
-
+  
   cout << "-I- parsed:" << fileName << " with " << lineNum << " lines "
        << idx << " objects and total of " 
        << tokens << " values" << endl;
@@ -143,7 +146,8 @@ int vecFile::parse(string fileName, int isInt)
   return 0;
 }
 
-vector<int> *vecFile::getIntVec(unsigned int objIdx) 
+vector<int> *
+vecFile::getIntVec(unsigned int objIdx) 
 {
   if (intData.size() <= objIdx) 
     return NULL;
@@ -151,7 +155,8 @@ vector<int> *vecFile::getIntVec(unsigned int objIdx)
     return &intData.at(objIdx);
 }
 
-vector<float> *vecFile::getFloatVec(unsigned int objIdx) 
+vector<float> *
+vecFile::getFloatVec(unsigned int objIdx) 
 {
   if (floatData.size() <= objIdx) 
     return NULL;
@@ -175,7 +180,8 @@ vecFiles *vecFiles::get()
   return singleton;
 }
 
-class vecFile *vecFiles::parseNewFile(string fileName, int isInt) 
+class vecFile *
+vecFiles::parseNewFile(string fileName, int isInt) 
 {
   vecFile *vf = new vecFile;
   if (vf->parse(fileName, isInt)) 
@@ -189,7 +195,8 @@ class vecFile *vecFiles::parseNewFile(string fileName, int isInt)
   return vf;
 }
 
-vector<int> *vecFiles::getIntVec(string fileName, int objIdx) 
+vector<int> *
+vecFiles::getIntVec(string fileName, int objIdx) 
 {
   vecFile *f;
   // try to find the file or parse a new file if unknown
@@ -197,7 +204,7 @@ vector<int> *vecFiles::getIntVec(string fileName, int objIdx)
   
   if (fI == files.end()) 
   {
-    f = parseNewFile(fileName, 1);
+    f = parseNewFile(fileName, 1 /* is int */);
   } 
   else 
   {
@@ -210,7 +217,8 @@ vector<int> *vecFiles::getIntVec(string fileName, int objIdx)
   return f->getIntVec(objIdx);
 }
 
-vector<float> *vecFiles::getFloatVec(string fileName, int objIdx) 
+vector<float> *
+vecFiles::getFloatVec(string fileName, int objIdx) 
 {
   vecFile *f;
   // try to find the file or parse a new file if unknown

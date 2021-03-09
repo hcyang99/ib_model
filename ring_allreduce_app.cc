@@ -51,6 +51,16 @@ void IBRingAllreduceApp::handleMessage(cMessage* msg)
         const char* g = msg->getArrivalGate()->getFullName();
         EV << "-I- " << getFullPath() << " received done msg " << recv_counter_ << " from:" 
             << g << omnetpp::endl;
+        // {
+        //     static int _cnt = 0;
+        //     if (rank_ == 307)
+        //     {
+        //         ++_cnt;
+        //         std::cout << "-I- " << getFullPath() << " received data: " << _cnt << std::endl;
+        //     }
+        // }
+                
+    
 
         ++recv_counter_;
         IBDoneMsg* d_msg = reinterpret_cast<IBDoneMsg*>(msg);
@@ -80,17 +90,24 @@ cMessage* IBRingAllreduceApp::getMsg(unsigned& msgIdx)
     p_msg->setAppIdx((4 * num_workers_ + rank_ - 2 - msgIdx) % num_workers_);
     p_msg->setMsgIdx(msgIdx);
     p_msg->setDstLid(nodeAllocVec_[rank_ + 1 > num_workers_ ? 0 : rank_]);
+    // assert(p_msg->getDstLid() != rank_);
     p_msg->setSQ(0);
     p_msg->setLenBytes(msgLen_B_ / num_workers_);
     p_msg->setLenPkts(msgLen_B_ / num_workers_ / msgMtuLen_B_);
     p_msg->setMtuBytes(msgMtuLen_B_);
 
+    // if (p_msg->getMsgIdx() == 2 && p_msg->getDstLid() == 1)
+    //     error("Break\n");
+
     ++msgIdx;
+    // EV << "msgIdx: " << msgIdx << omnetpp::endl;
     return p_msg;
 }
 
 void IBRingAllreduceApp::trySendNext()
 {
+    // if (rank_ == 1)
+    //     error("Break\n");
     int idx = (4 * num_workers_ + rank_ - 2 - counter_) % num_workers_;
     if (is_sending_)
         return;
@@ -110,5 +127,8 @@ void IBRingAllreduceApp::trySendNext()
     is_sending_ = true;
     cMessage* msg_new = getMsg(counter_);
     send(msg_new, "out$o");
+    // if (rank_ == 307)
+    //     std::cout << "-I- " << getFullPath() << " sent data: " << counter_ 
+    //         << " at " << getSimulation()->getEventNumber() << std::endl;
     return;
 }

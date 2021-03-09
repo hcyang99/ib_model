@@ -84,6 +84,7 @@ void IBVLArb::initialize()
   int busWidth_B = par("busWidth");
   // read parameters
   hcaArb = par("isHcaArbiter");
+  //connectwithhca = par("connectwithhca");
   maxVL = par("maxVL");
   useFCFSRQArb = par("useFCFSRQArb");
   markrate = par("markrate");
@@ -131,7 +132,7 @@ void IBVLArb::initialize()
   }
   
   // we also need a two dim array for tracking our promise 
-  // to bufs such to avoid a race between two requets
+  // to bufs such to avoid a race betwen two requets
   hoqFreeProvided = new short*[numInPorts];
   for (unsigned int pn = 0; pn < numInPorts; pn++)
     hoqFreeProvided[pn] = new short[maxVL+1];
@@ -176,7 +177,7 @@ void IBVLArb::initialize()
 
 // return the FCTBS of the OBUF driven by the VLA
 // The hardware does not use this model
-int IBVLArb::getOBufFCTBS(unsigned int vl) // function declared not being used
+int IBVLArb::getOBufFCTBS(unsigned int vl)
 {
   omnetpp::cGate *p_gate = gate("out")->getPathEndGate();
   IBOutBuf *p_oBuf = dynamic_cast<IBOutBuf *>(p_gate->getOwnerModule());
@@ -261,7 +262,7 @@ void IBVLArb::sendOutMessage(IBDataMsg *p_msg)
   FCTBS.at(p_msg->getVL())++;
 }
 
-// Notify the Gen that the flit was sent out
+// Notify the IBUF that the flit was sent out
 void IBVLArb::sendSentMessage(unsigned int portNum, unsigned int vl)
 {
   EV << "-I- " << getFullPath()
@@ -411,7 +412,7 @@ int IBVLArb::firstComeFirstServeNextRQForVL(int numCredits, unsigned int curPort
   if (!p_oldestFlit) return(0);
 
   // so can we send it?
-  if (p_oldestFlit->getPacketLength() <= numCredits)
+  if (p_oldestFlit->getPacketLength() <= numCredits) 
   {
     nextPortNum = oldestPortNum;
     return(1);
@@ -424,6 +425,7 @@ int IBVLArb::firstComeFirstServeNextRQForVL(int numCredits, unsigned int curPort
         << p_oldestFlit->getName() << " on port:" << oldestPortNum
         << " vl:" << vl << endl;
   }
+
   return(0);
 }
 
@@ -449,7 +451,7 @@ int IBVLArb::findNextSend( unsigned int &curIdx, ArbTableEntry *Tbl,
   for (unsigned int i = 0; i <= maxVL+1 ; i++) 
   {
     idx = (curIdx + i) % (maxVL+1);
-    // if we changed index we need to restart the weight counter
+    // if we changed index we need to restat the weight counter
     if (i) Tbl[idx].used = 0;
     
     // we should skip the entry if it has zero credits (weights) not used
@@ -491,6 +493,8 @@ int IBVLArb::findNextSendOnVL0( unsigned int &curPortNum )
   // how many credits are available for this VL
   numCredits = FCCL.at(0) - FCTBS.at(0);
   
+  
+  
   // start with the next port to the last one we sent
   for (unsigned int pn = 1; pn <= numInPorts; pn++) 
   {
@@ -512,8 +516,11 @@ int IBVLArb::findNextSendOnVL0( unsigned int &curPortNum )
     else 
     {
       // so can we send it?
+      //CreditsNum.record(numCredits);
+      //StaticFreeNum.record(p_flit->getPacketLength());
       if (p_flit->getPacketLength() <= numCredits) 
       {
+        //found = 1;
         found = numCredits;
         break;
       } 
@@ -537,6 +544,7 @@ int IBVLArb::findNextSendOnVL0( unsigned int &curPortNum )
 void IBVLArb::displayState()
 {
   // print the state of the arbiter
+  //if (omnetpp::cEnvir.disabled() == false) {
   EV << "-I- " << getFullPath() << " ARBITER STATE as VL/Used/Weight"
       << omnetpp::endl;
   EV << "-I- High:";
@@ -569,6 +577,7 @@ void IBVLArb::displayState()
           << "/" << setw(3) << LowTbl[e].weight << " ";
   }
   EV << omnetpp::endl;
+  //}
   
   int vlsWithData = 0;
   for (unsigned int vl = 0; vl < maxVL+1; vl++) 
@@ -595,6 +604,7 @@ void IBVLArb::displayState()
     if (anyInput)
       vlsWithData |= 1<<vl;
   }
+  //readyData.record(10*vlsWithData);
 }
 
 // Arbitration:
@@ -623,8 +633,8 @@ void IBVLArb::displayState()
 // * If not found incr index and repeat until all entries
 //   searched (ignore 0 weight entries).
 // * If found a new index use it and update the credits sent vs the weight.
-// * If not found and we are at HighTable - use LowTable and repeat the steps above.
-// * Decr the SentHighCounter if we are HighTable. Load it to vlHighLimit*4k/64
+// * If not found and we are HighTable - use LowTable and do as above.
+// * Dec the SentHighCounter if we are HighTable. Load it to vlHighLimit*4k/64
 //   otherwise.
 //
 void IBVLArb::arbitrate()
@@ -644,7 +654,7 @@ void IBVLArb::arbitrate()
     return;
   }
 
-  // display arbiter state and record vectors...
+  // display arbiter state and receovd vectors...
   displayState();
 
   // if we did not reach the end of the current packet simply send this credit
@@ -688,7 +698,7 @@ void IBVLArb::arbitrate()
       // If we are sending the last credit of packet when the SentHighCounter
       // is zero we need to reload it as this was the last credit of forced low
       // packet
-      if ( isLastFlit && (!SentHighCounter))
+      if ( isLastFlit && (SentHighCounter == 0))
         SentHighCounter = vlHighLimit*4096/64;
     }
     found = 1;
@@ -699,12 +709,12 @@ void IBVLArb::arbitrate()
     isFirstPacket = 1;
     
     // IF WE ARE HERE WE NEED TO FIND FIRST PACKET TO SEND
-    portNum = LastSentPort.at(LastSentVL);
+    portNum = LastSentPort[LastSentVL];
     vl = LastSentVL;
     
     if (maxVL > 0) 
     {
-      // if we are in High Limit case try from low first
+      // if we are in High Limit case try first from low
       if ( SentHighCounter <= 0 ) 
       {
         found = 1;
@@ -731,9 +741,21 @@ void IBVLArb::arbitrate()
       vl = 0;
       found = findNextSendOnVL0(portNum);
     }
-
+     
+    //if(markcount == 10001)
+    //{
+       //markcount = 1;
+    //}
+    //StaticFreeNum.record(markcount);
+    
     if (found) 
-    {    
+    {
+      /*markcount = markcount + 1 ;
+    if(markcount == 10001)
+    {
+       markcount = 1;
+    }*/
+      
       if (LastSentWasHigh) 
       {
         EV << "-I- " << getFullPath() << " Result High idx:" 
@@ -751,7 +773,10 @@ void IBVLArb::arbitrate()
       }
       
       nextSendHoq = inPktHoqPerVL[portNum][vl];
-      isLastFlit = (nextSendHoq->getFlitSn() + 1 == nextSendHoq->getPacketLength());
+      isLastFlit = 
+        (nextSendHoq->getFlitSn() + 1 == nextSendHoq->getPacketLength());
+
+      
       if (!isLastFlit) 
       {
         InsidePacket = 1; 
@@ -766,16 +791,37 @@ void IBVLArb::arbitrate()
            << nextSendHoq->getName() << " from port:" << portNum
            << " vl:" << vl << endl; 
       }
+      
+      //StaticFreeNum.record(nextSendHoq->getIsFECN()); 
+      
+      /*if( nextSendHoq!= NULL && nextSendHoq->getIsFECN() == 2 && markrate && (markcount % markrate == 0))
+      {
+        nextSendHoq->setIsFECN(1);
+        StaticFreeNum.record(nextSendHoq->getSrcLid());                   
+      }
+      else if( nextSendHoq!= NULL && nextSendHoq->getIsFECN() == 2 && markrate && (markcount % markrate != 0))
+      {
+        nextSendHoq->setIsFECN(0);                
+      }
+      else if( nextSendHoq!= NULL && nextSendHoq->getIsFECN() == 2 && !markrate)
+      {
+        nextSendHoq->setIsFECN(1);        
+      }
+
+      markcount = markcount + 1 ;*/
+      
     } 
     else 
     {
       EV << "-I- " << getFullPath() << " nothing to send" <<endl;
+      //arbDecision.record(-1);
       // not enougn credit;
       nextSendHoq = inPktHoqPerVL[portNum][vl];
       if( nextSendHoq!= NULL && nextSendHoq->getIsFECN() == 2)
       {
-        nextSendHoq->setIsFECN(0);
+        nextSendHoq->setIsFECN(0);             
       }
+      //markcount = markcount + 1 ;
       return;
     }
   } // first or not
@@ -790,19 +836,40 @@ void IBVLArb::arbitrate()
   {
     if(!nextSendHoq->getFlitSn() && FullCredit == 1)
     {
-      if( nextSendHoq!= NULL && nextSendHoq->getIsFECN() == 2 && markrate && (markcount % markrate == 0))
+      if( nextSendHoq!= NULL && nextSendHoq->getIsFECN() == 2 /*&& NewCreditsNum >= 32 */&& markrate && (markcount % markrate == 0))
       {
-        nextSendHoq->setIsFECN(1);              
+        nextSendHoq->setIsFECN(1);
+          //if(nextSendHoq->getSrcLid() <= 2)
+          //{
+          //StaticFreeNum.record(nextSendHoq->getSrcLid()); 
+          //}
+          //markcount = markcount + 1 ;                  
       }
+        //else if( nextSendHoq!= NULL && nextSendHoq->getIsFECN() == 2 && NewCreditsNum < 32 && markrate && (markcount % markrate == 0))
+        //{
+          //nextSendHoq->setIsFECN(0);
+                         
+        //}
       else if( nextSendHoq!= NULL && nextSendHoq->getIsFECN() == 2 && markrate && (markcount % markrate != 0))
       {
         nextSendHoq->setIsFECN(0);
+        //markcount = markcount + 1 ;
       }
       else if( nextSendHoq!= NULL && nextSendHoq->getIsFECN() == 2 && !markrate)
       {
-        nextSendHoq->setIsFECN(1);      
+        nextSendHoq->setIsFECN(1);
+        //StaticFreeNum.record(nextSendHoq->getSrcLid());
+        //markcount = markcount + 1 ;        
       }      
       markcount = markcount + 1 ;
+        //}
+        //else
+        //{
+          //if(nextSendHoq!= NULL && nextSendHoq->getIsFECN() == 2)
+          //{
+            //nextSendHoq->setIsFECN(0); 
+          //}
+        //}
     }
     if(!nextSendHoq->getFlitSn() && !FullCredit )
     {
@@ -823,25 +890,29 @@ void IBVLArb::arbitrate()
       HighTbl[HighIndex].used ++;
     else
       LowTbl[LowIndex].used ++;
+    
+    //arbDecision.record(10*(vl+1));
     sendOutMessage(nextSendHoq);
     sendSentMessage(LastSentPort.at(LastSentVL),LastSentVL);
   }
   else 
   {
     // if we are in the first data credit cleanup the InsidePacket flag
+    //StaticFreeNum.record(nextSendHoq->getIsFECN());
     if (!nextSendHoq->getFlitSn())
       InsidePacket = 0;
+    //arbDecision.record(-1);
   }
 } // arbitrate
 
 // Handle push message
 // A new credit is being provided by some port
-// We need to know which port we get the data from,
+// We need to know which port we get the data on,
 // which VL is it on
 // if the HOQ is aleady taken assert
 void IBVLArb::handlePush(IBDataMsg *p_msg)
 {
-  // which port did we get it from ?
+  // what port did we get it from ?
   unsigned int pn = p_msg->getArrivalGate()->getIndex();
   unsigned short int vl = p_msg->getVL();
   if ((pn < 0) || (pn >= numInPorts) ) 
@@ -897,6 +968,8 @@ void IBVLArb::handleTxCred(IBTxCredMsg *p_msg)
   EV << "-I- " << getFullPath() << " updated vl:" << vl
      << " fccl:" << p_msg->getFCCL()
      << " can send :" << FCCL[vl] - FCTBS[vl] << endl;
+  //CreditsNum.record(FCCL[vl] - FCTBS[vl]);
+  //StaticFreeNum.record(FCCL[vl] - FCTBS[vl]);
   if(FCCL.at(vl) - FCTBS.at(vl) < 42)
   {
     //FullCredit = 0;
@@ -925,6 +998,13 @@ void IBVLArb::handleMessage(omnetpp::cMessage *p_msg)
 
 void IBVLArb::finish()
 {
+  /*ev << "STAT: " << getFullPath() << " Wait for credits num/avg/max/std "
+    << portXmitWaitHist.getCount() 
+    << " / " << portXmitWaitHist.getMean()
+    << " / " << portXmitWaitHist.getMax() 
+    << " / " << portXmitWaitHist.getStddev() << endl;*/
+
+  //recordScalar("sent_BECN_vlarb",sent_BECN);
 }
 
 IBVLArb::~IBVLArb() 

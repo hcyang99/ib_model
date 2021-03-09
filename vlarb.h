@@ -51,7 +51,7 @@
 // Data Structure
 // To avoid duplicating and multiply by the number of ports the IBUF only 
 // keeps one credit message per input port, per VL. 
-// The IBUF should push its available credit immediately to the VLArb
+// The IBUF should push its available credit immediaty to the VLArb
 // The VLArb notify the IBUF that packet has left and the buffer is
 // not empty using the Sent message  
 // 
@@ -94,7 +94,7 @@ class IBVLArb: public omnetpp::cSimpleModule
   // data strcture:
   double popDelayPerByte_s;  // Rate of single byte injection 
   IBDataMsg ***inPktHoqPerVL; // the head of the send Q on every VL
-  short **hoqFreeProvided;    // set when a "free" HoQ provided/cleared on push (0 means not free)
+  short **hoqFreeProvided;    // set when a "free" HoQ provided/cleared on push
   unsigned int HighIndex, LowIndex; // points to the index in the VLArb tables.
   std::vector<int> LastSentPort; // last port that have sent data on each VL
   unsigned int LastSentVL; // the VL of the last sent packet

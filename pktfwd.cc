@@ -25,6 +25,7 @@ Define_Module(Pktfwd);
 
 void Pktfwd::initialize() 
 {
+
 	Switch = getParentModule();
 	if (!Switch) 
 	{
@@ -48,27 +49,6 @@ void Pktfwd::initialize()
 	}
 }
 
-/*void Pktfwd::FDB_Autoconfigure(const omnetpp::cPacket *pkt) 
-{
-	Enter_Method("Configuring FDB");
-	if (pkt == NULL|| !pkt->getVector.size())
-	{
-		error("-E- Failed to configure FDB as no routing information can be found on packet received %s",pkt->getName());
-	}
-	else
-	{
-		FDB_Auto.resize(pkt->getVector.size(),NULL);
-		for (auto &elm:pkt->getVector)
-		{
-			if (FDB_Auto.at(elm.first)==NULL)
-				FDB_Auto.at(elm.first) = elm.second;
-			else
-				error("Fail in configuring FDB as encounter multiple output ports for LID:%d !!",elm.first);
-		}
-		FDB = &FDB_Auto;
-	}
-}*/
-
 // get the output port for the given LID - the actual AR or deterministic routing
 int Pktfwd::getPortByLID(unsigned int sLid, unsigned int dLid) 
 {
@@ -79,7 +59,28 @@ int Pktfwd::getPortByLID(unsigned int sLid, unsigned int dLid)
 	    error("-E- getPortByLID: LID %d is out of available FDB range %d",
 		dLid, FDB->size() - 1);
 	}
-	outPort = (*FDB).at(dLid);
+	outPort = (*FDB)[dLid];
+	/*if(sLid == 3 && (outPort == 4 || outPort == 5))
+	{
+         outPort = 4;
+	}
+    else if(sLid == 4 && (outPort == 4 || outPort == 5))
+	{
+         outPort = 4;
+	}
+	else if(sLid == 5 && (outPort == 4 || outPort == 5))
+	{
+         outPort = 5;
+	}
+	else if(sLid == 6 && (outPort == 4 || outPort == 5))
+	{
+         outPort = 5;
+	}
+	else if(sLid == 9 && (outPort == 4 || outPort == 5))
+	{
+         outPort = 4;
+	}*/
+	
 	return(outPort);
 }
 
@@ -97,6 +98,7 @@ void Pktfwd::handleTQLoadMsg(unsigned int tq, unsigned int srcRank, unsigned int
 			lastLid, load);
 	EV << "-I- " << getFullPath() << " handleTQLoadMsg tq: " << tq << " srcRank: " << srcRank << " lids: "
 			<< firstLid << "," << lastLid << " load: " << load << omnetpp::endl;
+
 }
 
 void Pktfwd::finish()
