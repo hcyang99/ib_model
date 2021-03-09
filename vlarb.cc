@@ -577,8 +577,6 @@ void IBVLArb::displayState()
           << "/" << setw(3) << LowTbl[e].weight << " ";
   }
   EV << omnetpp::endl;
-  //}
-  
   int vlsWithData = 0;
   for (unsigned int vl = 0; vl < maxVL+1; vl++) 
   {
@@ -604,7 +602,6 @@ void IBVLArb::displayState()
     if (anyInput)
       vlsWithData |= 1<<vl;
   }
-  //readyData.record(10*vlsWithData);
 }
 
 // Arbitration:
@@ -741,21 +738,8 @@ void IBVLArb::arbitrate()
       vl = 0;
       found = findNextSendOnVL0(portNum);
     }
-     
-    //if(markcount == 10001)
-    //{
-       //markcount = 1;
-    //}
-    //StaticFreeNum.record(markcount);
-    
     if (found) 
-    {
-      /*markcount = markcount + 1 ;
-    if(markcount == 10001)
-    {
-       markcount = 1;
-    }*/
-      
+    {      
       if (LastSentWasHigh) 
       {
         EV << "-I- " << getFullPath() << " Result High idx:" 
@@ -791,37 +775,16 @@ void IBVLArb::arbitrate()
            << nextSendHoq->getName() << " from port:" << portNum
            << " vl:" << vl << endl; 
       }
-      
-      //StaticFreeNum.record(nextSendHoq->getIsFECN()); 
-      
-      /*if( nextSendHoq!= NULL && nextSendHoq->getIsFECN() == 2 && markrate && (markcount % markrate == 0))
-      {
-        nextSendHoq->setIsFECN(1);
-        StaticFreeNum.record(nextSendHoq->getSrcLid());                   
-      }
-      else if( nextSendHoq!= NULL && nextSendHoq->getIsFECN() == 2 && markrate && (markcount % markrate != 0))
-      {
-        nextSendHoq->setIsFECN(0);                
-      }
-      else if( nextSendHoq!= NULL && nextSendHoq->getIsFECN() == 2 && !markrate)
-      {
-        nextSendHoq->setIsFECN(1);        
-      }
-
-      markcount = markcount + 1 ;*/
-      
     } 
     else 
     {
       EV << "-I- " << getFullPath() << " nothing to send" <<endl;
-      //arbDecision.record(-1);
       // not enougn credit;
       nextSendHoq = inPktHoqPerVL[portNum][vl];
       if( nextSendHoq!= NULL && nextSendHoq->getIsFECN() == 2)
       {
         nextSendHoq->setIsFECN(0);             
       }
-      //markcount = markcount + 1 ;
       return;
     }
   } // first or not
@@ -838,38 +801,17 @@ void IBVLArb::arbitrate()
     {
       if( nextSendHoq!= NULL && nextSendHoq->getIsFECN() == 2 /*&& NewCreditsNum >= 32 */&& markrate && (markcount % markrate == 0))
       {
-        nextSendHoq->setIsFECN(1);
-          //if(nextSendHoq->getSrcLid() <= 2)
-          //{
-          //StaticFreeNum.record(nextSendHoq->getSrcLid()); 
-          //}
-          //markcount = markcount + 1 ;                  
+        nextSendHoq->setIsFECN(1);               
       }
-        //else if( nextSendHoq!= NULL && nextSendHoq->getIsFECN() == 2 && NewCreditsNum < 32 && markrate && (markcount % markrate == 0))
-        //{
-          //nextSendHoq->setIsFECN(0);
-                         
-        //}
       else if( nextSendHoq!= NULL && nextSendHoq->getIsFECN() == 2 && markrate && (markcount % markrate != 0))
       {
         nextSendHoq->setIsFECN(0);
-        //markcount = markcount + 1 ;
       }
       else if( nextSendHoq!= NULL && nextSendHoq->getIsFECN() == 2 && !markrate)
       {
         nextSendHoq->setIsFECN(1);
-        //StaticFreeNum.record(nextSendHoq->getSrcLid());
-        //markcount = markcount + 1 ;        
       }      
       markcount = markcount + 1 ;
-        //}
-        //else
-        //{
-          //if(nextSendHoq!= NULL && nextSendHoq->getIsFECN() == 2)
-          //{
-            //nextSendHoq->setIsFECN(0); 
-          //}
-        //}
     }
     if(!nextSendHoq->getFlitSn() && !FullCredit )
     {
@@ -890,8 +832,6 @@ void IBVLArb::arbitrate()
       HighTbl[HighIndex].used ++;
     else
       LowTbl[LowIndex].used ++;
-    
-    //arbDecision.record(10*(vl+1));
     sendOutMessage(nextSendHoq);
     sendSentMessage(LastSentPort.at(LastSentVL),LastSentVL);
   }
@@ -968,11 +908,8 @@ void IBVLArb::handleTxCred(IBTxCredMsg *p_msg)
   EV << "-I- " << getFullPath() << " updated vl:" << vl
      << " fccl:" << p_msg->getFCCL()
      << " can send :" << FCCL[vl] - FCTBS[vl] << endl;
-  //CreditsNum.record(FCCL[vl] - FCTBS[vl]);
-  //StaticFreeNum.record(FCCL[vl] - FCTBS[vl]);
   if(FCCL.at(vl) - FCTBS.at(vl) < 42)
   {
-    //FullCredit = 0;
   }
   else
   {
@@ -998,13 +935,6 @@ void IBVLArb::handleMessage(omnetpp::cMessage *p_msg)
 
 void IBVLArb::finish()
 {
-  /*ev << "STAT: " << getFullPath() << " Wait for credits num/avg/max/std "
-    << portXmitWaitHist.getCount() 
-    << " / " << portXmitWaitHist.getMean()
-    << " / " << portXmitWaitHist.getMax() 
-    << " / " << portXmitWaitHist.getStddev() << endl;*/
-
-  //recordScalar("sent_BECN_vlarb",sent_BECN);
 }
 
 IBVLArb::~IBVLArb() 

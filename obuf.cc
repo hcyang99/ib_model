@@ -161,32 +161,22 @@ void IBOutBuf::sendOutMessage(IBWireMsg *p_msg)
   if (firstPktSendTime == 0)
   {
     firstPktSendTime = omnetpp::simTime();
-    //if(hcaOBuf)
-    //{
     if (!timerMsg->isScheduled() && on_throughput_obuf > 0) 
     {
-        //omnetpp::simtime_t delay = genDlyPerByte_ns*1e-9*flitSize_B;
-        omnetpp::simtime_t delay = timeStep_us*1e-6;
-        scheduleAt(omnetpp::simTime()+delay, timerMsg);
+      omnetpp::simtime_t delay = timeStep_us*1e-6;
+      scheduleAt(omnetpp::simTime()+delay, timerMsg);
     }
-    //}
   }
 
   totalBytesSent += p_msg->getByteLength();
   BytesSentLastPeriod += p_msg->getByteLength();
-
-  //double oBW = totalBytesSent / (omnetpp::simTime() - firstPktSendTime);
-  //throughput.record(oBW);
-
 } // sendOutMessage
 
 // Q a message to be sent out.
 // If there is no pop message pending can directly send...
 void IBOutBuf::qMessage(IBDataMsg *p_msg) 
 {
-  // we stamp it to know how much time it stayed with us
-  //p_msg->setTimestamp(simTime());
-  
+  // we stamp it to know how much time it stayed with us  
   if ( p_popMsg && p_popMsg->isScheduled() ) 
   {
     if ( qSize <= queue.getLength() ) 
@@ -199,7 +189,6 @@ void IBOutBuf::qMessage(IBDataMsg *p_msg)
        << " Qdepth " << queue.getLength() << omnetpp::endl;
 
     queue.insert(p_msg);
-    //qDepth.record(queue.length());
   } 
   else 
   {
@@ -250,7 +239,6 @@ int IBOutBuf::sendFlowControl()
     {
       // avoid the first send...
       if (prevFCTime != 0)
-        // flowControlDelay.collect(simTime() - prevFCTime);
         prevFCTime = omnetpp::simTime();
     }
     
@@ -370,8 +358,6 @@ void IBOutBuf::handlePop()
     EV << "-I- " << getFullPath() << " nothing to POP" << omnetpp::endl;
     prevPopWasDataCredit = 0;
   }
-
-  //qDepth.record(queue.length());
 } // handlePop
 
 // Handle MinTime:
@@ -386,8 +372,6 @@ void IBOutBuf::handleMinTime()
   {
     scheduleAt(omnetpp::simTime() + 1e-9, p_popMsg);
   }
-  // we use the min time to collect Queue depth stats:
-  //qDepthHist.collect( queue.length() );
 
   scheduleAt(omnetpp::simTime() + credMinTime_us*1e-6, p_minTimeMsg);
 } // handleMinTime
@@ -397,7 +381,6 @@ void IBOutBuf::handleRxCred(IBRxCredMsg *p_msg)
 {
   // update FCCL...
   FCCL.at(p_msg->getVL()) = p_msg->getFCCL();
-  //delete p_msg;
   cancelAndDelete(p_msg);
 }
 
@@ -433,27 +416,6 @@ void IBOutBuf::handleMessage(omnetpp::cMessage *p_msg)
 
 void IBOutBuf::finish()
 {
-  /* EV << "STAT: " << getFullPath() << " Data Packet Q time num/avg/max/std:"
-     << packetStoreHist.getCount() << " / "
-     << packetStoreHist.getMean() << " / "
-     << packetStoreHist.getMax() << " / "
-     << packetStoreHist.getStddev() << endl; 
-     EV << "STAT: " << getFullPath() << " Q depth num/avg/max/std:"        
-     << qDepthHist.getCount() << " / "
-     << qDepthHist.getMean() << " / "
-     << qDepthHist.getMax() << " / "
-     << qDepthHist.getStddev() << endl;
-     EV << "STAT: " << getFullPath() << " FlowControl Delay num/avg/max/std:"
-     << flowControlDelay.getCount() << " / "
-     << flowControlDelay.getMean() << " / "
-     << flowControlDelay.getMax() << " / "
-     << flowControlDelay.getStddev() << endl;
-  */
-	//double oBW = totalBytesSent / (omnetpp::simTime() - firstPktSendTime);
-	//recordScalar("Output BW (Byte/Sec)", oBW);
-	//flitsSources.record();
-	// EV << "STAT: " << getFullPath() << " Flit Sources:" << endl << flitsSources.detailedInfo() << endl;
-  //recordScalar("sent BECN",sent_BECN);
 }
 
 IBOutBuf::~IBOutBuf() 

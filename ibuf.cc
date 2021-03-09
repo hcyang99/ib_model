@@ -400,13 +400,6 @@ void IBInBuf::handlePush(IBWireMsg *p_msg)
     if (!hcaIBuf)
 	    p_dataMsg->setBeforeAnySwitch(false);
 
-    // if (p_dataMsg->getDstLid() == 307 && p_dataMsg->getIsAppMsg())
-    // {
-    //   std::cout << "H[300] arrived pktidx " << p_dataMsg->getPktIdx() 
-    //     << " msgidx " << p_dataMsg->getMsgIdx() << " portnum " << curPacketOutPort << " event " << getSimulation()->getEventNumber()
-    //     << std::endl;
-    // }
-    
     // check out port is valid
     if ((curPacketOutPort < 0) ||  (curPacketOutPort >= (int)numPorts) ) 
     {
@@ -445,28 +438,17 @@ void IBInBuf::handlePush(IBWireMsg *p_msg)
         {
           congnum++;
           fraction = fraction + otheribuf->Q[curPacketOutPort][curPacketVL].getLength()/32.0;
-          //std::cout<<curPacketOutPort<<" "<< i<<" "<<otheribuf->Q[curPacketOutPort][curPacketVL].length()<<omnetpp::endl;
         }
       }
-       //totallength = Q[curPacketOutPort][curPacketVL].length();
-       //inputQueueLength.record(totallength);
-       //inputQueueLength.record(Q[curPacketOutPort][curPacketVL].length());
     }
-    //StaticFreeNum.record(staticFree[curPacketVL]);
     
-    //if(! hcaIBuf && congnum && totallength/(congnum*32) > 0.1 && Q[curPacketOutPort][curPacketVL].length())
     if(!hcaIBuf && totallength)
-    //fraction = totallength/32.0*congnum;
-    //if(!hcaIBuf && fraction)
     {
 
       if(!p_dataMsg->getIsFECN()&& !p_dataMsg->getIsBECN() && p_dataMsg->getFlitSn()== 0)
       {
-        //inputQueueLength.record(totallength / 32);
-        //std::cout<<"mark! "<< totallength << omnetpp::endl;
         p_dataMsg->setIsFECN(2);  
       }
-      //inputQueueLength.record(p_dataMsg->getSrcLid());
     }
 
     // For every DATA "credit" (not only first one)
@@ -516,8 +498,6 @@ void IBInBuf::handleSent(IBSentMsg *p_msg)
   {
     totalUsedStatics += maxStatic.at(vli) - staticFree.at(vli); 
   }
-  
-  //usedStaticCredits.record( totalUsedStatics );
   
   // update the free credits accordingly:
   int vl = p_msg->getVL();

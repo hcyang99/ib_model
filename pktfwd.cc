@@ -59,28 +59,7 @@ int Pktfwd::getPortByLID(unsigned int sLid, unsigned int dLid)
 	    error("-E- getPortByLID: LID %d is out of available FDB range %d",
 		dLid, FDB->size() - 1);
 	}
-	outPort = (*FDB)[dLid];
-	/*if(sLid == 3 && (outPort == 4 || outPort == 5))
-	{
-         outPort = 4;
-	}
-    else if(sLid == 4 && (outPort == 4 || outPort == 5))
-	{
-         outPort = 4;
-	}
-	else if(sLid == 5 && (outPort == 4 || outPort == 5))
-	{
-         outPort = 5;
-	}
-	else if(sLid == 6 && (outPort == 4 || outPort == 5))
-	{
-         outPort = 5;
-	}
-	else if(sLid == 9 && (outPort == 4 || outPort == 5))
-	{
-         outPort = 4;
-	}*/
-	
+	outPort = (*FDB)[dLid];	
 	return(outPort);
 }
 
